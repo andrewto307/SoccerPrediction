@@ -1,4 +1,5 @@
 import data_cleaning, data_collection, data_preprocessing, model
+from sklearn.preprocessing import MinMaxScaler
 
 
 if __name__ == "__main__":
@@ -14,9 +15,11 @@ if __name__ == "__main__":
     training_dataset, testing_dataset = cleaning.cleaning_data(cleaning.get_training_dataset(), cleaning.get_testing_dataset(),
                                         home_cols, draw_cols, away_cols)
     
+    scaler_for_betting_odd = MinMaxScaler()
     preprocessing = data_preprocessing.DataPreprocessing(training_dataset, testing_dataset)
     X_train, X_test, y_train, y_test = preprocessing.preprocessing(preprocessing.get_training_dataset(), 
-                                                                   preprocessing.get_testing_dataset())
+                                                                   preprocessing.get_testing_dataset(),
+                                                                   scaler_for_betting_odd)
     
     X_train.to_csv("../data/train.csv")
     y_train.to_csv("../data/test.csv")

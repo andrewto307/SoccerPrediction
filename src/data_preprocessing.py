@@ -3,7 +3,7 @@ from datetime import datetime
 
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.preprocessing import MinMaxScaler
-
+from sklearn.base import BaseEstimator
 
 class DataPreprocessing():
     def __init__(self, training_dataset: pd.DataFrame, testing_dataset: pd.DataFrame):
@@ -151,9 +151,18 @@ class DataPreprocessing():
             df = normalize_betting_odd(df, betting_odd)
 
         return df
+    
+    def scale(self, df, scaler: BaseEstimator) -> None:
+        scaler = MinMaxScaler()
+        columns_to_scale = df.loc[:, "HomeTeam_avg_goal_diff":"AwayTeam_ShotOnTarget"].columns
+        df[columns_to_scale] = df[columns_to_scale].astype(float)
+        df.loc[:, columns_to_scale] = scaler.fit_transform(df[columns_to_scale])
+
+        return df
 
     def preprocessing(self, training_dataset: pd.DataFrame, 
-                      testing_dataset: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
+                      testing_dataset: pd.DataFrame, 
+                      scaler: BaseEstimator) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
         '''
         Perform data preprocessing on training dataset and testing dataset
         '''
@@ -166,14 +175,9 @@ class DataPreprocessing():
         
         dataset = self.scale_betting_odd(dataset)
         dataset = dataset.drop(columns=["FTHG", "FTAG", "FTR", "HTHG", "HTAG", "HTR", "HF", "AF", "HY", "AY", "HR", "AR"])
-
-
-        scaler = MinMaxScaler()
-        columns_to_scale = dataset.loc[:, "HomeTeam_avg_goal_diff":"AwayTeam_ShotOnTarget"].columns
-        dataset[columns_to_scale] = dataset[columns_to_scale].astype(float)
-        dataset.loc[:, columns_to_scale] = scaler.fit_transform(dataset[columns_to_scale])
-
         dataset = dataset.drop(columns=["HS", "AS", "HST", "AST", "HC", "AC", "Max>2.5", "Max<2.5", "AHh", "MaxAHH", "MaxAHA"])
+
+        self.scale(dataset, scaler)
 
         pivot_date = testing_dataset["Date"][0]
         X_train = dataset.loc[dataset["Date"] < pivot_date, :].drop(columns = "FTR_encoded")
