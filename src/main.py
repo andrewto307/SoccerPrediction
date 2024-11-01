@@ -21,5 +21,7 @@ if __name__ == "__main__":
                                                                    preprocessing.get_testing_dataset(),
                                                                    scaler_for_betting_odd)
     
-    X_train.to_csv("../data/train.csv")
-    y_train.to_csv("../data/test.csv")
+    X_train.to_csv("../data/X_train.csv")
+    y_train.to_csv("../data/y_train.csv")
+    X_test.to_csv("../data/X_test.csv")
+    y_test.to_csv("../data/y_test.csv")
