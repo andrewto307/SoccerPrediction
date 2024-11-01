@@ -11,8 +11,12 @@ if __name__ == "__main__":
     draw_cols = ["GBD", "IWD", "LBD", "SBD", "PSD", "SJD", "VCD", "BSD", "PSCD"]
     away_cols = ["GBA", "IWA", "LBA", "SBA", "PSA", "SJA", "VCA", "BSA", "PSCA"]
 
-    training_dataset, testing_dataset = cleaning.cleaning_data(training_dataset, testing_dataset,
+    training_dataset, testing_dataset = cleaning.cleaning_data(cleaning.get_training_dataset(), cleaning.get_testing_dataset(),
                                         home_cols, draw_cols, away_cols)
     
-    training_dataset.to_csv("../data/training_clean.csv")
-    testing_dataset.to_csv('../data/test_clean.csv')
+    preprocessing = data_preprocessing.DataPreprocessing(training_dataset, testing_dataset)
+    X_train, X_test, y_train, y_test = preprocessing.preprocessing(preprocessing.get_training_dataset(), 
+                                                                   preprocessing.get_testing_dataset())
+    
+    X_train.to_csv("../data/train.csv")
+    y_train.to_csv("../data/test.csv")

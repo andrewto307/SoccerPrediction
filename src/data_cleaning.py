@@ -9,6 +9,15 @@ class DataCleaning:
         self.training_dataset = training_dataset
         self.testing_dataset = testing_dataset
 
+    def get_training_dataset(self) -> pd.DataFrame:
+        return self.training_dataset
+    
+    def get_testing_dataset(self) -> pd.DataFrame:
+        return self.testing_dataset
+    
+    def to_datetime(self) -> None:
+        self.training_dataset["Date"] = pd.to_datetime(self.training_dataset["Date"], format="mixed", dayfirst=True)
+        self.testing_dataset["Date"] = pd.to_datetime(self.testing_dataset["Date"], format="mixed", dayfirst=True)
 
     def nan_handling(self, df: pd.DataFrame, home_cols: list, draw_cols: list, away_cols: list) -> pd.DataFrame:
         """Fill NaN values in specific columns using averages."""
@@ -47,7 +56,8 @@ class DataCleaning:
 
     def cleaning_data(self, training_dataset: pd.DataFrame, testing_dataset: pd.DataFrame, 
                       home_cols: list, draw_cols: list, away_cols: list) -> tuple[pd.DataFrame, pd.DataFrame]:
-
+        
+        self.to_datetime()
         training_dataset = self.nan_handling(training_dataset, home_cols, draw_cols, away_cols)
         training_dataset, testing_dataset = self.column_alignment(training_dataset, testing_dataset)
 
