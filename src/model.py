@@ -7,18 +7,18 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import GridSearchCV
 
 class Model:
-    def __init__(self, model, X_train, y_train, X_test, y_test) -> None:
+    def __init__(self, classifier, X_train, y_train, X_test, y_test) -> None:
         self.X_train = X_train
         self.y_train = y_train
         self.X_test = X_test
         self.y_test = y_test
-        self.model = model
+        self.classifier = classifier
 
-    def get_model(self):
-        return self.model
+    def get_classifier(self):
+        return self.classifier
     
     def run_model(self, params):
-        model = self.get_model(**params)
+        model = self.get_classifier(**params)
         model.fit(self.X_train, self.y_train)
 
         return model
@@ -32,8 +32,8 @@ class Model:
         print(classification_report(y_test, y_pred, zero_division=0))
         print(model.get_best_score())
 
-    def grid_search_cv(self, model, param_grid):
-        grid_search = grid_search = GridSearchCV(estimator=model, param_grid=param_grid, scoring='balanced_accuracy',
+    def grid_search_cv(self, classifier, param_grid):
+        grid_search = grid_search = GridSearchCV(estimator=classifier, param_grid=param_grid, scoring='balanced_accuracy',
                                cv=5, verbose=1)
         
         grid_search.fit(self.X_train, self.y_train)
@@ -54,9 +54,9 @@ class Catboost(Model):
         return model
     
 class StackingClassifier(Model):
-    def __init__(self, model, X_train, y_train, X_test, y_test, model_list):
-        super().__init__(model, X_train, y_train, X_test, y_test)
-        self.model_list = model_list
+    def __init__(self, classifier, X_train, y_train, X_test, y_test, classifier_list):
+        super().__init__(classifier, X_train, y_train, X_test, y_test)
+        self.classifier_list = classifier_list
 
     def run_model(self, params, final_estimator):
         model = StackingClassifier(**params, final_estimator)
