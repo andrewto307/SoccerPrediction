@@ -50,9 +50,9 @@ This project predicts the outcomes of soccer matches (Home Win, Draw, Away Win) 
 
         1. **Convert Odds to Probabilities**:  
             Each betting odd  $O_{i,j}$ is converted to a probability $P_{i,j}$ using:  
-            $$
-            P_{i,j} = \frac{1}{O_{i,j}}
-            $$
+            <p align="center">
+                <img src="https://github.com/andrewto307/SoccerPrediction/tree/main/data/img_1.png"/>
+            </p>
 
 
         2. **Compute Normalization Factor**:  
