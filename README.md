@@ -9,6 +9,7 @@ This project predicts the outcomes of soccer matches (Home Win, Draw, Away Win) 
 * Decision Tree
 * Random Forest
 * Gradient Boosting
+* NB Guassian
 * XgBoost 
 * CatBoost
 
@@ -76,6 +77,7 @@ Models that were used for training and testing:
  * Decision Tree
  * Random Forest
  * Gradient Boosting
+ * NB Gaussian
  * XGBoost
  * CatBoost
 
@@ -96,6 +98,90 @@ Use classification report to generate the following evaluation metrics:
  * I used GridSearchCV to systematically and automatically search for the best hyperparameters. The parameters are flexible and depend on the models used for training. The default scoring metric across models is balanced accuracy, which aims to achieve the best performance beyond simple accuracy.
 
 ## Results
+
+### Decision Tree
+
+#### Test Set Accuracy: 0.49
+
+| Class | Precision | Recall | F1-Score | Support |
+|-------|-----------|--------|----------|---------|
+| 0     | 0.42      | 0.53   | 0.47     | 47      |
+| 1     | 0.29      | 0.08   | 0.12     | 50      |
+| 2     | 0.57      | 0.72   | 0.63     | 83      |
+
+| Metric          | Precision | Recall | F1-Score |
+|------------------|-----------|--------|----------|
+| Accuracy         |           |        | 0.49     |
+| Macro Avg        | 0.42      | 0.44   | 0.41     |
+| Weighted Avg     | 0.45      | 0.49   | 0.45     |
+
+### Random Forest
+
+#### Test Set Accuracy: 0.52
+
+| Class | Precision | Recall | F1-Score | Support |
+|-------|-----------|--------|----------|---------|
+| 0     | 0.42      | 0.36   | 0.39     | 47      |
+| 1     | 0.48      | 0.24   | 0.32     | 50      |
+| 2     | 0.57      | 0.78   | 0.66     | 83      |
+
+| Metric          | Precision | Recall | F1-Score |
+|------------------|-----------|--------|----------|
+| Accuracy         |           |        | 0.52     |
+| Macro Avg        | 0.49      | 0.46   | 0.46     |
+| Weighted Avg     | 0.50      | 0.52   | 0.49     |
+
+### Gradient Boosting
+
+### Naive Bayes
+
+#### Test Set Accuracy: 0.49
+
+| Class | Precision | Recall | F1-Score | Support |
+|-------|-----------|--------|----------|---------|
+| 0     | 0.46      | 0.55   | 0.50     | 47      |
+| 1     | 0.34      | 0.46   | 0.39     | 50      |
+| 2     | 0.70      | 0.47   | 0.56     | 83      |
+
+| Metric          | Precision | Recall | F1-Score |
+|------------------|-----------|--------|----------|
+| Accuracy         |           |        | 0.49     |
+| Macro Avg        | 0.50      | 0.49   | 0.48     |
+| Weighted Avg     | 0.54      | 0.49   | 0.50     |
+
+### Stacking Classifier
+
+Stacking classifiers: Gradient Boosting, Random Forest; final classifier: Naive Bayes
+
+#### Test Accuracy: 0.53
+
+| Class | Precision | Recall | F1-Score | Support |
+|-------|-----------|--------|----------|---------|
+| 0     | 0.46      | 0.62   | 0.53     | 47      |
+| 1     | 0.42      | 0.30   | 0.35     | 50      |
+| 2     | 0.64      | 0.63   | 0.63     | 83      |
+
+| Metric          | Precision | Recall | F1-Score |
+|------------------|-----------|--------|----------|
+| Accuracy         |           |        | 0.53     |
+| Macro Avg        | 0.51      | 0.51   | 0.50     |
+| Weighted Avg     | 0.53      | 0.53   | 0.53     |
+
+### CatBoost
+
+#### Test Accuracy: 0.56
+
+| Class | Precision | Recall | F1-Score | Support |
+|-------|-----------|--------|----------|---------|
+| 0     | 0.51      | 0.47   | 0.49     | 47      |
+| 1     | 0.49      | 0.40   | 0.44     | 50      |
+| 2     | 0.61      | 0.71   | 0.66     | 83      |
+
+| Metric          | Precision | Recall | F1-Score |
+|------------------|-----------|--------|----------|
+| Accuracy         |           |        | 0.56     |
+| Macro Avg        | 0.54      | 0.53   | 0.53     |
+| Weighted Avg     | 0.55      | 0.56   | 0.55     |
 
 
 
