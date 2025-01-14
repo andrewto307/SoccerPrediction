@@ -44,6 +44,7 @@ Features description are stored in the file ../data/description.yaml
    * Encoding: 
 
         **Label Encoding**: Assigns a unique integer to result of each match (0: Away Win; 1: Draw; 2: Home Win)
+     
         **One-Hot Encoding**: Creates binary columns for each team, with a `1` indicating the presence of a particular team.
 
    * Data scaling: This transformation transform the raw betting odds to equivalent winning probabilities and guarantees that the sum of normalized probabilities of all outcomes 1 for each match. Steps and formulas:
@@ -62,6 +63,40 @@ Features description are stored in the file ../data/description.yaml
         3. **Normalize Probabilities**:  
         Each probability is divided by the normalization factor:
             <p align="center">$$\large P'_{i,j} = \frac{P_{i,j}}{\text{Normalization Factor}_{i}}$$</p>
+
+## Models Training
+
+### Data Preparation:
+ * Training dataset: I combined dataset from 2008-2009 season to 2018-2019 season as trainning dataset
+ * Testing dataset: The dataset of the 2019-2020 season
+
+### Models:
+
+Models that were used for training and testing:
+ * Decision Tree
+ * Random Forest
+ * Gradient Boosting
+ * XGBoost
+ * CatBoost
+
+### Evaluation Metrics:
+
+Use classification report to generate the following evaluation metrics: 
+
+ * Overall test accuracy
+ * Precision
+ * Recall
+ * F1-score
+ * Support
+
+### Training process:
+
+#### Hyperparameter Tuning:
+
+ * I used GridSearchCV to systematically and automatically search for the best hyperparameters. The parameters are flexible and depend on the models used for training. The default scoring metric across models is balanced accuracy, which aims to achieve the best performance beyond simple accuracy.
+
+## Results
+
 
 
 
