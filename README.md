@@ -173,15 +173,16 @@ Stacking classifiers: Gradient Boosting, Random Forest; final classifier: Naive 
 
 | Class | Precision | Recall | F1-Score | Support |
 |-------|-----------|--------|----------|---------|
-| 0     | 0.51      | 0.47   | 0.49     | 47      |
-| 1     | 0.49      | 0.40   | 0.44     | 50      |
-| 2     | 0.61      | 0.71   | 0.66     | 83      |
+| 0     | 0.68      | 0.45   | 0.51     | 47      |
+| 1     | 0.50      | 0.46   | 0.48     | 50      |
+| 2     | 0.61      | 0.72   | 0.66     | 83      |
 
 | Metric          | Precision | Recall | F1-Score |
 |------------------|-----------|--------|----------|
-| Accuracy         |           |        | 0.56     |
-| Macro Avg        | 0.54      | 0.53   | 0.53     |
-| Weighted Avg     | 0.55      | 0.56   | 0.55     |
+| Accuracy         |           |        | 0.58     |
+| Macro Avg        | 0.57      | 0.54   | 0.55     |
+| Weighted Avg     | 0.58      | 0.58   | 0.57     |
+
 
 
 
