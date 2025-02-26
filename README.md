@@ -169,7 +169,7 @@ Stacking classifiers: Gradient Boosting, Random Forest; final classifier: Naive 
 
 ### CatBoost
 
-#### Test Accuracy: 0.56
+#### Test Accuracy: 0.58
 
 | Class | Precision | Recall | F1-Score | Support |
 |-------|-----------|--------|----------|---------|
