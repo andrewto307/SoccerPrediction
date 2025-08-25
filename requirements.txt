@@ -1,10 +1,9 @@
-python3.11
 pandas
 numpy
 matplotlib
 seaborn
 scikit-learn
 xgboost
-libomp
 pyyaml
 catboost
+imblearn
