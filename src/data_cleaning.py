@@ -1,64 +1,79 @@
 import pandas as pd
-import numpy as np
-
-import yaml
 
 
-class DataCleaning:
-    def __init__(self, training_dataset: pd.DataFrame, testing_dataset: pd.DataFrame) -> None:
-        self.training_dataset = training_dataset
-        self.testing_dataset = testing_dataset
+class DataCleaning():
+    def __init__(self, train: pd.DataFrame, test: pd.DataFrame) -> None:
+        self.train = train.copy()
+        self.test = test.copy()
 
-    def get_training_dataset(self) -> pd.DataFrame:
-        return self.training_dataset
+    def get_training_ds(self) -> pd.DataFrame:
+        return self.train
     
-    def get_testing_dataset(self) -> pd.DataFrame:
-        return self.testing_dataset
+    def get_testing_df(self) -> pd.DataFrame:
+        return self.test
     
-    def to_datetime(self) -> None:
-        self.training_dataset["Date"] = pd.to_datetime(self.training_dataset["Date"], format="mixed", dayfirst=True)
-        self.testing_dataset["Date"] = pd.to_datetime(self.testing_dataset["Date"], format="mixed", dayfirst=True)
+    def parse_date(self, df: pd.DataFrame) -> pd.DataFrame:
+        if "Date" not in df.columns:
+            return df
+        
+        parsed = pd.to_datetime(df["Date"], format="mixed", dayfirst=True, errors="coerce")
+        df = df.copy()
+        df["Date"] = parsed
+        return df.sort_values("Date", kind="stable").reset_index(drop=True)
+    
+    def nan_handling(self, df: pd.DataFrame, 
+                     home_cols: list,
+                     draw_cols: list,
+                     away_cols: list,
+                     avg_home: str = "BbAvH",
+                     avg_draw: str = "BbAvD",
+                     avg_away: str = "BbAvA"
+    ) -> pd.DataFrame:
+        
+        out = df.copy()
+        
+        def _fill_group(targets: list, avg: str) -> None:
+            if avg not in out.columns:
+                return
+            
+            for c in targets:
+                if c not in out.columns:
+                    continue
+                out[c] = out[c].fillna(out[avg])
 
-    def nan_handling(self, df: pd.DataFrame, home_cols: list, draw_cols: list, away_cols: list) -> pd.DataFrame:
-        """Fill NaN values in specific columns using averages."""
-        try:
-            for col in home_cols:
-                df[col] = df[col].fillna(df["BbAvH"])
+        _fill_group(home_cols, avg_home)
+        _fill_group(draw_cols, avg_draw)
+        _fill_group(away_cols, avg_away)
 
-            for col in draw_cols:
-                df[col] = df[col].fillna(df["BbAvD"])
-
-            for col in away_cols:
-                df[col] = df[col].fillna(df["BbAvA"])
-        except KeyError as e:
-            print(f"Column missing for NaN handling: {e}")
-
-        return df
-
-    def column_alignment(self, training_dataset: pd.DataFrame, testing_dataset: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-        def standardize_columns(df):
-            return (
-                df.columns.str.replace(r'^Bb', '', regex=True)
+        return out
+    
+    def standardize_columns(self, df: pd.DataFrame) -> pd.DataFrame:
+        out = df.copy()
+        out.columns = (
+                out.columns.str.replace(r'^Bb', '', regex=True)
                 .str.replace('Mx', 'Max')
                 .str.replace('Av', 'Avg')
-            )
+        )
 
-        # Standardize column names in both datasets
-        training_dataset.columns = standardize_columns(training_dataset)
-        testing_dataset.columns = standardize_columns(testing_dataset)
+        return out
+    
+    def column_alignment(self, train_df: pd.DataFrame, test_df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+        train_df_standardize = self.standardize_columns(train_df)
+        test_df_standardize = self.standardize_columns(test_df)
 
-        # Align datasets by common columns
-        common_columns = training_dataset.columns.intersection(testing_dataset.columns)
-        training_dataset = training_dataset[common_columns]
-        testing_dataset = testing_dataset[common_columns]
+        common = train_df_standardize.columns.intersection(test_df_standardize.columns)
 
-        return training_dataset, testing_dataset
+        ordered = [i for i in train_df_standardize.columns if i in common]
+        if "Date" in common:
+            ordered = ["Date"] + [i for i in ordered if i != "Date"]
 
-    def cleaning_data(self, training_dataset: pd.DataFrame, testing_dataset: pd.DataFrame, 
-                      home_cols: list, draw_cols: list, away_cols: list) -> tuple[pd.DataFrame, pd.DataFrame]:
-        
-        self.to_datetime()
-        training_dataset = self.nan_handling(training_dataset, home_cols, draw_cols, away_cols)
-        training_dataset, testing_dataset = self.column_alignment(training_dataset, testing_dataset)
+        return train_df_standardize[ordered].copy(), test_df_standardize[ordered].copy()
+    
+    def clean(self, home_cols: list, draw_cols: list, away_cols: list):
+        self.train = self.parse_date(self.train)
+        self.test = self.parse_date(self.test)
 
-        return training_dataset, testing_dataset
+        self.train = self.nan_handling(self.train, home_cols, draw_cols, away_cols)
+
+        self.train, self.test = self.column_alignment(self.train, self.test)
+        return self
