@@ -1,14 +1,19 @@
 import pandas as pd
+import numpy as np
 from datetime import datetime
-
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder, MinMaxScaler
 from sklearn.base import BaseEstimator
 
-class DataPreprocessing():
+
+class DataPreprocessing:
     def __init__(self, training_dataset: pd.DataFrame, testing_dataset: pd.DataFrame):
         self.training_dataset = training_dataset
         self.testing_dataset = testing_dataset
+        
+        # Elo rating parameters
+        self.ELO_K = 20
+        self.ELO_START = 1500
+        self.ELO_HOME_ADV = 100
 
     def get_training_dataset(self) -> pd.DataFrame:
         return self.training_dataset
@@ -16,49 +21,37 @@ class DataPreprocessing():
     def get_testing_dataset(self) -> pd.DataFrame:
         return self.testing_dataset
 
-    def encoding(self, df: pd.DataFrame) -> pd.DataFrame:
+    def match_encode(self, df: pd.DataFrame) -> pd.DataFrame:
         '''
+        Label encode match results (FTR column).
         
-        Encoding team and match results
-        _param: df: the dataframe to be processed
-        _return: df: the updated dataframe
-
+        Parameters:
+            df: DataFrame containing FTR column
+            
+        Returns:
+            DataFrame with FTR_encoded column added
         '''
-        def team_encode(df):
-            all_teams = pd.concat([df['HomeTeam'], df['AwayTeam']]).unique()
-            one_hot_encoder = OneHotEncoder(sparse_output=False)
-            team_encoded = one_hot_encoder.fit_transform(df[['HomeTeam', 'AwayTeam']])
-            team_encoded_df = pd.DataFrame(team_encoded, columns=one_hot_encoder.get_feature_names_out(['HomeTeam', 'AwayTeam']))
-            df = pd.concat([df.reset_index(drop=True), team_encoded_df.reset_index(drop=True)], axis=1)
-            return df, team_encoded_df
 
-        def match_encode(df):
-            label_encoder = LabelEncoder()
-            df["FTR_encoded"] = label_encoder.fit_transform(df["FTR"])
-            return df
-        
-        df, team_encoded_df = team_encode(df)
-        df = match_encode(df)
-
+        label_encoder = LabelEncoder()
+        df["FTR_encoded"] = label_encoder.fit_transform(df["FTR"])
         return df
-    
-
 
     def team_last_matches_performance(self, df: pd.DataFrame, team: str, 
-                                      date: datetime, number_of_matches: int) -> tuple[float, int, float]:
+                                    date: datetime, number_of_matches: int) -> tuple[float, int, float]:
 
         '''
+        Calculate team performance in recent matches
 
-        calculate the performance in recent matches
-        _param: df : dataframe to be processed
-                team: team to be analyzed
-                date: the date of current match
-                number_of_matches: number of matches of this team before current match
-        _return:    avg_goal_diff: avg(goal_scored - goal_conceded)
-                    points: points earned (3 for Win, 1 for Draw, 0 for Lose)
-                    shot_on_target: avg shot on target 
-
+        Parameters:
+            df: DataFrame containing match data
+            team: Team name to analyze
+            date: Current match date
+            number_of_matches: Number of recent matches to consider
+            
+        Returns:
+            tuple: (avg_goal_diff, points, shot_on_target)
         '''
+
         past_n_matches = df.loc[((df["HomeTeam"] == team) | (df["AwayTeam"] == team)) & 
                                 (df["Date"] < date), :].tail(number_of_matches)
 
@@ -91,14 +84,15 @@ class DataPreprocessing():
         
         return avg_goal_diff, points, shot_on_target
 
-    def add_team_performance(self, df: pd.DataFrame) -> pd.DataFrame:
-
+    def add_team_performance_features(self, df: pd.DataFrame) -> pd.DataFrame:
         '''
+        Add team performance features to the dataset
 
-        Add new columns about team performance
-        _param: dataframe to be processed
-        _return: updated dataframe
-
+        Parameters:
+            df: DataFrame containing match data
+            
+        Returns:
+            DataFrame with team performance features added
         '''
 
         dataset_columns = df.columns.to_list()
@@ -110,7 +104,6 @@ class DataPreprocessing():
             axis=1
         )
 
-
         df[["AwayTeam_avg_goal_diff", "AwayTeam_points", "AwayTeam_ShotOnTarget"]] = df.apply(
             lambda row: pd.Series(
                 self.team_last_matches_performance(df, row["AwayTeam"], row["Date"], 5)
@@ -118,75 +111,274 @@ class DataPreprocessing():
             axis=1
         )
 
-
         df = df[dataset_columns[:dataset_columns.index("FTHG")]
-                                            +['HomeTeam_avg_goal_diff', 'HomeTeam_points', "HomeTeam_ShotOnTarget", 
-                                            "AwayTeam_avg_goal_diff", "AwayTeam_points", "AwayTeam_ShotOnTarget"] 
-                                            + dataset_columns[dataset_columns.index("FTHG"):]]
+                + ['HomeTeam_avg_goal_diff', 'HomeTeam_points', "HomeTeam_ShotOnTarget", 
+                   "AwayTeam_avg_goal_diff", "AwayTeam_points", "AwayTeam_ShotOnTarget"] 
+                + dataset_columns[dataset_columns.index("FTHG"):]]
 
         return df
 
-    def scale_betting_odd(self, df: pd.DataFrame) -> pd.DataFrame:
+    # Elo rating
 
+    def _outcome_scores(self, row: pd.Series) -> tuple[float, float]:
+        '''
+        Outcome scores of a match (1, 0.5, 0 for win, draw, loss)
+
+        Parameters:
+            row: Series containing match data
+            
+        Returns:
+            tuple: (home_score, away_score)
         '''
 
-        Scale betting odd. Method: new_odd = (probability) / normalized_function
-        _df: dataframe to be processed
+        if "FTR" in row and pd.notna(row["FTR"]):
+            if row["FTR"] == "H":   return 1.0, 0.0
+            if row["FTR"] == "A":   return 0.0, 1.0
+            return 0.5, 0.5
 
+        enc = row.get("FTR_encoded", None)
+        if enc == 2:    return 1.0, 0.0   # Home win
+        if enc == 0:    return 0.0, 1.0   # Away win
+        if enc == 1:    return 0.5, 0.5   # Draw
+
+        return 0.5, 0.5
+
+    def _expected_scores(self, R_home: float, R_away: float, home_adv: float = None) -> tuple[float, float]:
+        '''
+        Expected scores of 2 teams in a match
+
+        Parameters:
+            R_home: Elo rating of home team
+            R_away: Elo rating of away team
+            home_adv: Home advantage
+            
+        Returns:
+            tuple: (expected_home_score, expected_away_score)
         '''
 
-        def normalize_betting_odd(df, columns):
-            for col in columns:
-                df[col] = df[col].apply(lambda x: 1/x)
-            normalization_factor = df[columns].sum(axis=1)
-            for col in columns:
-                df[col] = df[col] / normalization_factor
-            return df
+        if home_adv is None:
+            home_adv = self.ELO_HOME_ADV
+            
+        E_home = 1.0 / (1.0 + 10 ** ((R_away - (R_home + home_adv)) / 400.0))
+        return E_home, 1.0 - E_home
+
+    def add_elo_ratings(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Add Elo ratings for home and away teams.
         
-        betting_comapnies = []
-        for index in range(df.columns.get_loc("B365H"), df.columns.get_loc("MaxH"), 3):
-            betting_comapnies.append(df.columns[index:index+3].tolist())
+        Args:
+            df: DataFrame containing match data
+            
+        Returns:
+            DataFrame with home_elo and away_elo columns added
+        """
+        if not {"HomeTeam", "AwayTeam", "Date"}.issubset(df.columns):
+            raise ValueError("Dataset must contain 'HomeTeam', 'AwayTeam', and 'Date' columns.")
 
-        for betting_odd in betting_comapnies:
-            df = normalize_betting_odd(df, betting_odd)
+        df_sorted = df.sort_values("Date").copy()
+        ratings = {}  
+
+        home_elos = []
+        away_elos = []
+
+        for _, row in df_sorted.iterrows():
+            h = row["HomeTeam"]
+            a = row["AwayTeam"]
+
+            Rh = ratings.get(h, self.ELO_START)
+            Ra = ratings.get(a, self.ELO_START)
+
+            # record pre-match
+            home_elos.append(Rh)
+            away_elos.append(Ra)
+
+            Eh, Ea = self._expected_scores(Rh, Ra, home_adv=self.ELO_HOME_ADV)
+            Sh, Sa = self._outcome_scores(row)
+
+            # Elo updates
+            ratings[h] = Rh + self.ELO_K * (Sh - Eh)
+            ratings[a] = Ra + self.ELO_K * (Sa - Ea)
+
+        df_sorted["home_elo"] = home_elos
+        df_sorted["away_elo"] = away_elos
+
+        df_with_elo = df_sorted.sort_index()
+        return df_with_elo
+
+    def normalize_betting_odds(self, df: pd.DataFrame, columns: list, 
+                              prefix: str = None, keep_overround: bool = True) -> pd.DataFrame:
+        '''
+        Normalize betting odds
+        
+        Parameters:
+            df: DataFrame containing betting odds
+            columns: List of columns to normalize
+            prefix: Prefix of the betting company
+            keep_overround: Whether to keep the overround for analysis
+        '''
+
+        if not all(c in df.columns for c in columns):
+            return df
+
+        # avoid 1/0
+        for col in columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+            df[col] = df[col].mask(df[col] <= 0)
+
+        valid = df[columns].notna().all(axis=1)
+        if not valid.any():
+            return df
+
+        # Implied probs
+        inv = 1.0 / df.loc[valid, columns].astype(float)
+        if keep_overround and prefix is not None:
+            df.loc[valid, f"{prefix}_overround"] = inv.sum(axis=1)  # S (sum of implied probs)
+
+        # Final renormalization so H+D+A = 1
+        denom = inv.sum(axis=1)
+        for col in columns:
+            df.loc[valid, col] = inv[col] / denom
 
         return df
-    
-    def scale(self, df, scaler: BaseEstimator) -> None:
-        scaler = MinMaxScaler()
+
+    def normalize_all_betting_odds(self, df: pd.DataFrame) -> pd.DataFrame:
+
+        '''
+        Add normalized betting odds to the dataset
+        
+        Parameters:
+            df: DataFrame containing betting odds
+            
+        Returns:
+            DataFrame with normalized betting odds added
+        '''
+
+        betting_companies = ["B365", "BW", "IW", "WH", "VC", "Max", "PS", "PSC"]
+        for p in betting_companies:
+            triplet = [f"{p}{s}" for s in ("H", "D", "A")]
+            df = self.normalize_betting_odds(df, triplet, prefix=p, keep_overround=True)
+        return df
+
+    def add_engineered_features(self, df: pd.DataFrame) -> pd.DataFrame:
+
+        out = df.copy()
+
+        candidates = ["B365", "VC", "IW", "Max", "WH", "BW", "PS", "PSC"]
+        bookies = [p for p in candidates if all(f"{p}{s}" in out.columns for s in ("H", "D", "A"))]
+
+        if not bookies:
+            raise ValueError("No bookmaker triplets (H/D/A) found to build consensus features.")
+
+        H_cols = [f"{p}H" for p in bookies]
+        D_cols = [f"{p}D" for p in bookies]
+        A_cols = [f"{p}A" for p in bookies]
+        ov_cols = [f"{p}_overround" for p in bookies if f"{p}_overround" in out.columns]
+
+        # 2) mean of the betting odds
+        out["pH_mean"] = out[H_cols].mean(axis=1)
+        out["pD_mean"] = out[D_cols].mean(axis=1)
+        out["pA_mean"] = out[A_cols].mean(axis=1)
+
+        # Overround stats
+        if ov_cols:
+            out["overround_mean"] = out[ov_cols].mean(axis=1)
+            out["overround_std"] = out[ov_cols].std(axis=1).fillna(0.0)
+        else:
+            # Default overround is 1.0
+            out["overround_mean"] = 1.0
+            out["overround_std"] = 0.0
+
+        # 4) Elo feature
+        if "home_elo" in out.columns and "away_elo" in out.columns:
+            out["elo_diff"] = out["home_elo"] - out["away_elo"]
+        else:
+            out["elo_diff"] = 0.0
+
+        return out
+
+    def scale_features(self, df: pd.DataFrame, scaler: BaseEstimator) -> pd.DataFrame:
+        """
+        Scale team performance features using the provided scaler.
+        
+        Parameters:
+            df: DataFrame to scale
+            scaler: Scaler instance to use
+            
+        Returns:
+            DataFrame with scaled features
+        """
         columns_to_scale = df.loc[:, "HomeTeam_avg_goal_diff":"AwayTeam_ShotOnTarget"].columns
         df[columns_to_scale] = df[columns_to_scale].astype(float)
         df.loc[:, columns_to_scale] = scaler.fit_transform(df[columns_to_scale])
+        return df
 
+    def clean_columns(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Remove unnecessary columns from the dataset.
+        
+        Parameters:
+            df: DataFrame to clean
+            
+        Returns:
+            DataFrame with unnecessary columns removed
+        """
+        df = df.drop(columns=["FTHG", "FTAG", "FTR", "HTHG", "HTAG", "HTR", 
+                              "HF", "AF", "HY", "AY", "HR", "AR"])
+        
+        df = df.drop(columns=["HS", "AS", "HST", "AST", "HC", "AC", 
+                              "Max>2.5", "Max<2.5", "AHh", "MaxAHH", "MaxAHA"])
+        
         return df
 
     def preprocessing(self, training_dataset: pd.DataFrame, 
-                      testing_dataset: pd.DataFrame, 
-                      scaler: BaseEstimator) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
-        '''
-        Perform data preprocessing on training dataset and testing dataset
-        '''
-
-        dataset = pd.concat([training_dataset, testing_dataset])
-
-        dataset = self.encoding(dataset)
-
-        dataset = self.add_team_performance(dataset)
+                     testing_dataset: pd.DataFrame, 
+                     scaler: BaseEstimator) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
+        """
+        Perform complete data preprocessing pipeline.
         
-        dataset = self.scale_betting_odd(dataset)
-        dataset = dataset.drop(columns=["FTHG", "FTAG", "FTR", "HTHG", "HTAG", "HTR", "HF", "AF", "HY", "AY", "HR", "AR"])
-        dataset = dataset.drop(columns=["HS", "AS", "HST", "AST", "HC", "AC", "Max>2.5", "Max<2.5", "AHh", "MaxAHH", "MaxAHA"])
-
-        self.scale(dataset, scaler)
-
-        pivot_date = testing_dataset["Date"][0]
-        X_train = dataset.loc[dataset["Date"] < pivot_date, :].drop(columns = "FTR_encoded")
-        X_test = dataset.loc[dataset["Date"] >= pivot_date, :].drop(columns = "FTR_encoded")
-
-        y_train = dataset.loc[dataset["Date"] < pivot_date, ["FTR_encoded"]]
-        y_test = dataset.loc[dataset["Date"] >= pivot_date, ["FTR_encoded"]]
-
-        y_train = y_train.squeeze()
-        y_test = y_test.squeeze()
-
+        Parameters:
+            training_dataset: Training dataset
+            testing_dataset: Testing dataset
+            scaler: Scaler instance for feature scaling
+            
+        Returns:
+            tuple: (X_train, X_test, y_train, y_test)
+        """
+        # Combine datasets
+        dataset = pd.concat([training_dataset, testing_dataset])
+        
+        # Encoding
+        dataset = self.match_encode(dataset)
+        
+        # Add team performance features
+        dataset = self.add_team_performance_features(dataset)
+        
+        # Add Elo ratings
+        dataset = self.add_elo_ratings(dataset)
+        
+        # Normalize betting odds
+        dataset = self.normalize_all_betting_odds(dataset)
+        
+        # Add engineered features
+        dataset = self.add_engineered_features(dataset)
+        
+        # Clean unnecessary columns
+        dataset = self.clean_columns(dataset)
+        
+        # Scale features
+        dataset = self.scale_features(dataset, scaler)
+        
+        # Split into training and testing sets
+        pivot_date = testing_dataset["Date"].iloc[0]
+        X_train = dataset.loc[dataset["Date"] < pivot_date, :].drop(columns="FTR_encoded")
+        X_test = dataset.loc[dataset["Date"] >= pivot_date, :].drop(columns="FTR_encoded")
+        
+        y_train = dataset.loc[dataset["Date"] < pivot_date, "FTR_encoded"]
+        y_test = dataset.loc[dataset["Date"] >= pivot_date, "FTR_encoded"]
+        
+        # Save feature columns for future reference
+        feature_columns = X_train.columns
+        feature_columns.to_series(name="feature").to_csv("../data/feature_columns.csv", index=False)
+        print(f"Saved feature_columns.csv with {len(feature_columns)} columns")
+        
         return X_train, X_test, y_train, y_test
