@@ -19,7 +19,7 @@ class DataCleaning():
         parsed = pd.to_datetime(df["Date"], format="mixed", dayfirst=True, errors="coerce")
         df = df.copy()
         df["Date"] = parsed
-        return df.sort_values("Date", kind="stable").reset_index(drop=True)
+        return df.sort_values("Date").reset_index(drop=True)
     
     def nan_handling(self, df: pd.DataFrame, 
                      home_cols: list,
