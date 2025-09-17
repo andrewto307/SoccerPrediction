@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Model configurations and hyperparameters for different ML algorithms.
 """

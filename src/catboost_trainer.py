@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 CatBoost-specific training logic for soccer prediction.
 """

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 General model training logic for non-CatBoost models.
 """

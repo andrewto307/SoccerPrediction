@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Base trainer class with common functionality for all model trainers.
 """
