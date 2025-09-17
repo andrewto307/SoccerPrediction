@@ -1,3 +1,7 @@
+"""
+Model class for soccer prediction. Main interface for training and predicting using all the specialized trainers.
+"""
+
 import pandas as pd
 import numpy as np
 import pickle
@@ -5,12 +9,8 @@ from pathlib import Path
 from typing import List, Dict, Tuple, Optional, Union
 
 from sklearn.metrics import accuracy_score, classification_report, log_loss
-from sklearn.preprocessing import LabelEncoder
-from sklearn.utils import shuffle
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, StackingClassifier
 from sklearn.naive_bayes import GaussianNB
-from imblearn.over_sampling import SMOTENC
-from collections import Counter
 
 from catboost import CatBoostClassifier
 # from xgboost import XGBClassifier
