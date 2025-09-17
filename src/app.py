@@ -235,7 +235,7 @@ def main():
                                         color='Probability',
                                         color_continuous_scale='RdYlGn')
                             fig.update_layout(yaxis_tickformat='.1%')
-                            st.plotly_chart(fig, width='stretch')
+                            st.plotly_chart(fig, width='content')
                             
                         except Exception as e:
                             st.error(f"Error making prediction: {str(e)}")
