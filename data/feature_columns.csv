@@ -1,10 +1,14 @@
 feature
+Div
+Date
 HomeTeam
 AwayTeam
 HomeTeam_avg_goal_diff
 HomeTeam_points
+HomeTeam_ShotOnTarget
 AwayTeam_avg_goal_diff
 AwayTeam_points
+AwayTeam_ShotOnTarget
 B365H
 B365D
 B365A
@@ -42,8 +46,6 @@ PSC_overround
 pH_mean
 pD_mean
 pA_mean
-overround_mean
-overround_std
 home_adv
 draw_tightness
 elo_diff

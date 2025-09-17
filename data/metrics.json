@@ -1,0 +1,17 @@
+{
+  "accuracy": 0.55,
+  "precision": 0.5289700930877401,
+  "recall": 0.55,
+  "f1": 0.5323156786959825,
+  "log_loss": 1.0148163979612028,
+  "best_score": {
+    "learn": {
+      "Accuracy": 0.9928796158304355,
+      "MultiClass": 0.21613448414480257
+    },
+    "validation": {
+      "Accuracy": 0.55,
+      "MultiClass": 0.9963233202654505
+    }
+  }
+}
