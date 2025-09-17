@@ -175,7 +175,7 @@ class DataPreprocessing:
         if not {"HomeTeam", "AwayTeam", "Date"}.issubset(df.columns):
             raise ValueError("Dataset must contain 'HomeTeam', 'AwayTeam', and 'Date' columns.")
 
-        df_sorted = df.sort_values("Date").copy()
+        df_sorted = df.sort_values("Date", kind="mergesort").copy()
         ratings = {}  
 
         home_elos = []
@@ -260,7 +260,10 @@ class DataPreprocessing:
         return df
 
     def add_engineered_features(self, df: pd.DataFrame) -> pd.DataFrame:
-
+        """
+        Add engineered features exactly as in the notebook.
+        Creates: pH_mean, pD_mean, pA_mean, home_adv, draw_tightness, elo_diff
+        """
         out = df.copy()
 
         candidates = ["B365", "VC", "IW", "Max", "WH", "BW", "PS", "PSC"]
@@ -272,23 +275,17 @@ class DataPreprocessing:
         H_cols = [f"{p}H" for p in bookies]
         D_cols = [f"{p}D" for p in bookies]
         A_cols = [f"{p}A" for p in bookies]
-        ov_cols = [f"{p}_overround" for p in bookies if f"{p}_overround" in out.columns]
 
-        # 2) mean of the betting odds
+        # 2) Consensus means (market consensus) - matches notebook
         out["pH_mean"] = out[H_cols].mean(axis=1)
         out["pD_mean"] = out[D_cols].mean(axis=1)
         out["pA_mean"] = out[A_cols].mean(axis=1)
 
-        # Overround stats
-        if ov_cols:
-            out["overround_mean"] = out[ov_cols].mean(axis=1)
-            out["overround_std"] = out[ov_cols].std(axis=1).fillna(0.0)
-        else:
-            # Default overround is 1.0
-            out["overround_mean"] = 1.0
-            out["overround_std"] = 0.0
+        # 3) Engineered odds features - matches notebook exactly
+        out["home_adv"] = out["pH_mean"] - out["pA_mean"]
+        out["draw_tightness"] = 1.0 - (out["pH_mean"] + out["pA_mean"])
 
-        # 4) Elo feature
+        # 4) Elo feature - matches notebook
         if "home_elo" in out.columns and "away_elo" in out.columns:
             out["elo_diff"] = out["home_elo"] - out["away_elo"]
         else:
@@ -330,55 +327,45 @@ class DataPreprocessing:
         
         return df
 
-    def preprocessing(self, training_dataset: pd.DataFrame, 
-                     testing_dataset: pd.DataFrame, 
-                     scaler: BaseEstimator) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
-        """
-        Perform complete data preprocessing pipeline.
-        
-        Parameters:
-            training_dataset: Training dataset
-            testing_dataset: Testing dataset
-            scaler: Scaler instance for feature scaling
-            
-        Returns:
-            tuple: (X_train, X_test, y_train, y_test)
-        """
-        # Combine datasets
+    def preprocessing(self, training_dataset, testing_dataset, scaler):
+        # 1) concat then deterministic encoding/features (same as before)
         dataset = pd.concat([training_dataset, testing_dataset])
-        
-        # Encoding
         dataset = self.match_encode(dataset)
-        
-        # Add team performance features
         dataset = self.add_team_performance_features(dataset)
-        
-        # Add Elo ratings
         dataset = self.add_elo_ratings(dataset)
-        
-        # Normalize betting odds
         dataset = self.normalize_all_betting_odds(dataset)
-        
-        # Add engineered features
-        dataset = self.add_engineered_features(dataset)
-        
-        # Clean unnecessary columns
-        dataset = self.clean_columns(dataset)
-        
-        # Scale features
-        dataset = self.scale_features(dataset, scaler)
-        
-        # Split into training and testing sets
-        pivot_date = testing_dataset["Date"].iloc[0]
-        X_train = dataset.loc[dataset["Date"] < pivot_date, :].drop(columns="FTR_encoded")
-        X_test = dataset.loc[dataset["Date"] >= pivot_date, :].drop(columns="FTR_encoded")
-        
-        y_train = dataset.loc[dataset["Date"] < pivot_date, "FTR_encoded"]
-        y_test = dataset.loc[dataset["Date"] >= pivot_date, "FTR_encoded"]
-        
-        # Save feature columns for future reference
+
+        # 2) (optional) drop obvious target-only columns BEFORE split (same as you do)
+        dataset = dataset.drop(columns=["FTHG", "FTAG", "FTR", "HTHG", "HTAG", "HTR",
+                                        "HF", "AF", "HY", "AY", "HR", "AR"])
+
+        # 3) Choose a stable split boundary
+        pivot_date = testing_dataset["Date"].min()  # instead of .iloc[0]
+        X = dataset.drop(columns="FTR_encoded")
+        y = dataset["FTR_encoded"]
+
+        X_train = X.loc[X["Date"] < pivot_date].copy()
+        X_test  = X.loc[X["Date"] >= pivot_date].copy()
+        y_train = y.loc[X["Date"] < pivot_date].copy()
+        y_test  = y.loc[X["Date"] >= pivot_date].copy()
+
+        # 4) Scale ONLY the intended columns, fit on train, transform test
+        cols_to_scale = X_train.loc[:, "HomeTeam_avg_goal_diff":"AwayTeam_ShotOnTarget"].columns
+        X_train[cols_to_scale] = scaler.fit_transform(X_train[cols_to_scale].astype(float))
+        X_test[cols_to_scale]  = scaler.transform(X_test[cols_to_scale].astype(float))
+
+        # 5) Add engineered features AFTER scaling (same as before)
+        X_train = self.add_engineered_features(X_train)
+        X_test  = self.add_engineered_features(X_test)
+
+        # 6) Drop the remaining columns (same list you had after scaling)
+        drop_cols = ["HS", "AS", "HST", "AST", "HC", "AC", "Max>2.5", "Max<2.5", "AHh", "MaxAHH", "MaxAHA"]
+        X_train = X_train.drop(columns=[c for c in drop_cols if c in X_train.columns])
+        X_test  = X_test.drop(columns=[c for c in drop_cols if c in X_test.columns])
+
+        # 7) Persist column order for reproducibility
         feature_columns = X_train.columns
         feature_columns.to_series(name="feature").to_csv("../data/feature_columns.csv", index=False)
         print(f"Saved feature_columns.csv with {len(feature_columns)} columns")
-        
+
         return X_train, X_test, y_train, y_test

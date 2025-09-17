@@ -15,11 +15,11 @@ class DataCleaning():
     def parse_date(self, df: pd.DataFrame) -> pd.DataFrame:
         if "Date" not in df.columns:
             return df
-        
-        parsed = pd.to_datetime(df["Date"], format="mixed", dayfirst=True, errors="coerce")
         df = df.copy()
-        df["Date"] = parsed
-        return df.sort_values("Date").reset_index(drop=True)
+        df["Date"] = pd.to_datetime(df["Date"], format="mixed", dayfirst=True, errors="coerce")
+        if not df["Date"].is_monotonic_increasing:
+            df = df.sort_values("Date", kind="mergesort")
+        return df
     
     def nan_handling(self, df: pd.DataFrame, 
                      home_cols: list,
@@ -32,18 +32,18 @@ class DataCleaning():
         
         out = df.copy()
         
-        def _fill_group(targets: list, avg: str) -> None:
-            if avg not in out.columns:
-                return
-            
-            for c in targets:
-                if c not in out.columns:
-                    continue
-                out[c] = out[c].fillna(out[avg])
-
-        _fill_group(home_cols, avg_home)
-        _fill_group(draw_cols, avg_draw)
-        _fill_group(away_cols, avg_away)
+        # Fill NaN values exactly as in the notebook
+        for col in home_cols:
+            if col in out.columns:
+                out[col] = out[col].fillna(out[avg_home])
+        
+        for col in draw_cols:
+            if col in out.columns:
+                out[col] = out[col].fillna(out[avg_draw])
+        
+        for col in away_cols:
+            if col in out.columns:
+                out[col] = out[col].fillna(out[avg_away])
 
         return out
     
@@ -63,11 +63,8 @@ class DataCleaning():
 
         common = train_df_standardize.columns.intersection(test_df_standardize.columns)
 
-        ordered = [i for i in train_df_standardize.columns if i in common]
-        if "Date" in common:
-            ordered = ["Date"] + [i for i in ordered if i != "Date"]
-
-        return train_df_standardize[ordered].copy(), test_df_standardize[ordered].copy()
+        # Use the exact same approach as the notebook - just take the intersection
+        return train_df_standardize[common].copy(), test_df_standardize[common].copy()
     
     def clean(self, home_cols: list, draw_cols: list, away_cols: list):
         self.train = self.parse_date(self.train)
