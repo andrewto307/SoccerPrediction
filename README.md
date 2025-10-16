@@ -2,7 +2,7 @@
 
 A comprehensive machine learning system for predicting soccer match outcomes using multiple algorithms and advanced feature engineering.
 
-## 🚀 Features
+## Features
 
 - **6 ML Algorithms**: CatBoost, Random Forest, XGBoost, Gradient Boosting, Naive Bayes, and Stacking Classifier
 - **63% Accuracy**: Best performance achieved with CatBoost on recent data
@@ -13,7 +13,7 @@ A comprehensive machine learning system for predicting soccer match outcomes usi
 - **Production Ready**: Comprehensive error handling, logging, and model persistence
 - **🐳 Docker Support**: Fully containerized for easy deployment and reproducibility
 
-## 📊 Model Performance
+## Model Performance
 
 | Model | Accuracy | Precision | Recall | F1-Score |
 |-------|----------|-----------|--------|----------|
@@ -24,7 +24,7 @@ A comprehensive machine learning system for predicting soccer match outcomes usi
 | Naive Bayes | 55.2% | 54.8% | 54.5% | 54.6% |
 | Stacking | 60.5% | 59.8% | 59.2% | 59.5% |
 
-## 🛠️ Installation
+## Installation
 
 1. **Clone the repository**
 ```bash
@@ -53,7 +53,7 @@ docker-compose up
 streamlit run src/app.py
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 SoccerPrediction/
@@ -72,7 +72,7 @@ SoccerPrediction/
 └── README.md                # This file
 ```
 
-## 🎯 Usage
+## Usage
 
 ### Web Application
 1. Launch the Streamlit app: `streamlit run src/app.py`
@@ -99,7 +99,7 @@ predictions = model.predict(X_test)
 probabilities = model.predict_proba(X_test)
 ```
 
-## 🐳 Docker Deployment
+## Docker Deployment
 
 The application is fully containerized for easy deployment and reproducibility.
 
@@ -126,7 +126,7 @@ metrics = model.evaluate(X_test, y_test)
 print(f"Accuracy: {metrics['accuracy']:.2%}")
 ```
 
-## 🔧 Technical Details
+## Technical Details
 
 ### Data Pipeline
 1. **Data Collection**: Raw match data from multiple seasons
@@ -149,7 +149,7 @@ print(f"Accuracy: {metrics['accuracy']:.2%}")
 - **Hyperparameter Tuning**: Optimized parameters for each algorithm
 - **Cross-Validation**: 10-fold cross-validation for robust evaluation
 
-## 📈 Performance Analysis
+## Performance Analysis
 
 The system achieves 63% accuracy on recent data (2018-2020) using CatBoost with the following key insights:
 
@@ -158,23 +158,6 @@ The system achieves 63% accuracy on recent data (2018-2020) using CatBoost with 
 - **League Characteristics**: Different leagues show varying predictability
 - **Market Efficiency**: More recent data shows better prediction accuracy
 
-## 🚀 Future Enhancements
-
-- [ ] Real-time data integration
-- [ ] Additional leagues and competitions
-- [ ] Ensemble methods for improved accuracy
-- [ ] Deep learning models
-- [ ] API for external integrations
-- [ ] Mobile application
-
-## 📝 License
+## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📧 Contact
-
-For questions or suggestions, please open an issue or contact the maintainers.
