@@ -81,28 +81,6 @@ SoccerPrediction/
 4. Go to "Match Prediction" tab to make predictions on historical matches
 5. View "Analytics" tab for model performance and feature importance
 
-### Programmatic Usage
-```python
-from src.model import SoccerPredictionModel
-
-# Initialize model
-model = SoccerPredictionModel(model_type='catboost')
-
-# Load data
-X_train, X_test, y_train, y_test = model.load_data()
-
-# Train model
-model.train(X_train, y_train, X_test, y_test, feature_set="odds_form_teams")
-
-# Make predictions
-predictions = model.predict(X_test)
-probabilities = model.predict_proba(X_test)
-```
-
-## Docker Deployment
-
-The application is fully containerized for easy deployment and reproducibility.
-
 ### Quick Start with Docker
 ```bash
 # Build and run the application
@@ -110,20 +88,6 @@ The application is fully containerized for easy deployment and reproducibility.
 
 # Or using docker-compose
 docker-compose up
-```
-
-### Docker Features
-- **One-command setup**: No need to install Python or dependencies
-- **Data persistence**: Training data and models are preserved
-- **Health monitoring**: Built-in health checks
-- **Development mode**: Live code reloading for development
-- **Production ready**: Optimized for deployment
-
-For detailed Docker usage, see [DOCKER.md](DOCKER.md).
-
-# Evaluate model
-metrics = model.evaluate(X_test, y_test)
-print(f"Accuracy: {metrics['accuracy']:.2%}")
 ```
 
 ## Technical Details
@@ -157,7 +121,3 @@ The system achieves 63% accuracy on recent data (2018-2020) using CatBoost with 
 - **Temporal Robustness**: Performance varies across different time periods
 - **League Characteristics**: Different leagues show varying predictability
 - **Market Efficiency**: More recent data shows better prediction accuracy
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
