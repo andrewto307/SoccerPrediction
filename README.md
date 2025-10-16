@@ -11,7 +11,7 @@ A comprehensive machine learning system for predicting soccer match outcomes usi
 - **Model Comparison**: Compare performance across different algorithms
 - **Feature Engineering**: Advanced features including Elo ratings, market consensus, and team performance metrics
 - **Production Ready**: Comprehensive error handling, logging, and model persistence
-- **🐳 Docker Support**: Fully containerized for easy deployment and reproducibility
+- **Docker Support**: Fully containerized for easy deployment and reproducibility
 
 ## Model Performance
 
