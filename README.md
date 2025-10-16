@@ -1,57 +1,66 @@
 # Soccer Match Prediction System
 
-A comprehensive machine learning system for predicting soccer match outcomes using multiple algorithms and advanced feature engineering.
+A machine learning system that predicts soccer match outcomes using historical data and betting market intelligence.
 
-## Features
+## Overview
 
-- **6 ML Algorithms**: CatBoost, Random Forest, XGBoost, Gradient Boosting, Naive Bayes, and Stacking Classifier
-- **63% Accuracy**: Best performance achieved with CatBoost on recent data
-- **Interactive Web Interface**: Streamlit-based dashboard for model selection and predictions
-- **Real-time Predictions**: Select from historical matches and get instant predictions
-- **Model Comparison**: Compare performance across different algorithms
-- **Feature Engineering**: Advanced features including Elo ratings, market consensus, and team performance metrics
-- **Production Ready**: Comprehensive error handling, logging, and model persistence
-- **Docker Support**: Fully containerized for easy deployment and reproducibility
+This system provides accurate predictions for soccer match results using multiple machine learning algorithms. It processes historical match data, betting odds, and team performance metrics to generate reliable predictions with up to 63% accuracy.
 
-## Model Performance
+## Key Capabilities
 
-| Model | Accuracy | Precision | Recall | F1-Score |
-|-------|----------|-----------|--------|----------|
-| CatBoost | 63.0% | 62.5% | 61.8% | 62.1% |
-| XGBoost | 61.0% | 60.2% | 59.8% | 60.0% |
-| Random Forest | 58.0% | 57.1% | 56.9% | 57.0% |
-| Gradient Boosting | 59.5% | 58.7% | 58.3% | 58.5% |
-| Naive Bayes | 55.2% | 54.8% | 54.5% | 54.6% |
-| Stacking | 60.5% | 59.8% | 59.2% | 59.5% |
+- **Match Outcome Prediction**: Predict home wins, draws, and away wins
+- **Multiple Algorithms**: CatBoost, Random Forest, XGBoost, Gradient Boosting, Naive Bayes, and Stacking Classifier
+- **Interactive Dashboard**: Web-based interface for model training and predictions
+- **Historical Analysis**: Analyze past matches and model performance
+- **Production Deployment**: Docker containerization for easy deployment
 
-## Installation
+## Performance
 
-1. **Clone the repository**
+CatBoost achieves the best performance with 63% accuracy using SMOTE for class balancing. The system supports multiple algorithms including Random Forest, XGBoost, Gradient Boosting, Naive Bayes, and Stacking Classifier for comparison and experimentation.
+
+## Quick Start
+
+Get up and running in minutes:
+
 ```bash
+# Clone and run with Docker (recommended)
 git clone <repository-url>
 cd SoccerPrediction
-```
-
-2. **Install dependencies**
-```bash
-pip install -r requirements.txt
-```
-
-3. **Run the application**
-
-**Option A: Using Docker (Recommended)**
-```bash
-# Quick start with Docker
 ./docker-run.sh
-
-# Or using docker-compose
-docker-compose up
 ```
 
-**Option B: Local Python environment**
+The application will be available at `http://localhost:8501`.
+
+### Alternative: Local Installation
+
 ```bash
+# Clone the repository
+git clone <repository-url>
+cd SoccerPrediction
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the application
 streamlit run src/app.py
 ```
+
+## Usage
+
+1. **Select Model**: Choose from available algorithms in the sidebar
+2. **Train Model**: Click "Train Model" to train the selected algorithm
+3. **Make Predictions**: Navigate to "Match Prediction" tab to predict outcomes for historical matches
+4. **View Results**: See prediction probabilities and model performance metrics
+
+## Data Sources
+
+The system uses comprehensive match data including:
+
+- **Match Results**: Historical outcomes from multiple seasons
+- **Betting Odds**: Multiple bookmaker odds for market intelligence
+- **Team Performance**: Historical performance metrics and statistics
+- **Elo Ratings**: Dynamic team strength calculations
+- **Market Consensus**: Aggregated betting market data
 
 ## Project Structure
 
@@ -59,65 +68,46 @@ streamlit run src/app.py
 SoccerPrediction/
 ├── src/
 │   ├── app.py                 # Streamlit web application
-│   ├── model.py              # ML model implementation
+│   ├── main.py               # Command-line interface
+│   ├── model.py              # Core ML model implementation
+│   ├── data_collection.py    # Data collection module
+│   ├── data_cleaning.py      # Data cleaning pipeline
 │   ├── data_preprocessing.py # Data preprocessing pipeline
-│   ├── data_cleaning.py      # Data cleaning utilities
-│   └── data_collection.py    # Data collection module
-├── data/
-│   ├── X_train.csv           # Training features
-│   ├── X_test.csv            # Test features
-│   ├── y_train.csv           # Training labels
-│   └── y_test.csv            # Test labels
+│   ├── model_configs.py      # Model configurations
+│   ├── base_trainer.py       # Base trainer class
+│   ├── model_trainer.py      # General model trainer
+│   └── catboost_trainer.py   # CatBoost-specific trainer
+├── data/                     # Training datasets and configurations
+├── notebook/                 # Jupyter notebooks for development
 ├── requirements.txt          # Python dependencies
-└── README.md                # This file
+├── Dockerfile               # Docker configuration
+├── docker-compose.yml       # Docker Compose setup
+├── docker-run.sh           # Quick Docker deployment script
+└── DOCKER.md               # Docker documentation
 ```
 
-## Usage
+## Docker Deployment
 
-### Web Application
-1. Launch the Streamlit app: `streamlit run src/app.py`
-2. Select a model type from the sidebar
-3. Click "Train Model" to train the selected algorithm
-4. Go to "Match Prediction" tab to make predictions on historical matches
-5. View "Analytics" tab for model performance and feature importance
+The system is fully containerized for production deployment:
 
-### Quick Start with Docker
 ```bash
-# Build and run the application
+# Quick deployment
 ./docker-run.sh
 
-# Or using docker-compose
+# Using Docker Compose
 docker-compose up
+
+# Build custom image
+docker build -t soccer-prediction .
 ```
 
-## Technical Details
+For detailed Docker configuration, see [DOCKER.md](DOCKER.md).
 
-### Data Pipeline
-1. **Data Collection**: Raw match data from multiple seasons
-2. **Data Cleaning**: Handle missing values, standardize formats
-3. **Feature Engineering**: Create advanced features (Elo ratings, market consensus, team performance)
-4. **Preprocessing**: Encode categorical variables, scale features
-5. **Model Training**: Train multiple algorithms with cross-validation
+## Requirements
 
-### Key Features
-- **Betting Odds**: Multiple bookmaker odds with normalization
-- **Team Performance**: Historical performance metrics
-- **Elo Ratings**: Dynamic team strength ratings
-- **Market Consensus**: Aggregated betting market intelligence
-- **Home Advantage**: Statistical home field advantage
-- **Draw Tightness**: Market expectation for draw outcomes
+- Python 3.11+
+- Docker (for containerized deployment)
 
-### Model Architecture
-- **Feature Selection**: Automated feature selection based on importance
-- **Class Balancing**: SMOTE for CatBoost, class weights for other models
-- **Hyperparameter Tuning**: Optimized parameters for each algorithm
-- **Cross-Validation**: 10-fold cross-validation for robust evaluation
+## License
 
-## Performance Analysis
-
-The system achieves 63% accuracy on recent data (2018-2020) using CatBoost with the following key insights:
-
-- **Feature Importance**: Betting odds and Elo ratings are most predictive
-- **Temporal Robustness**: Performance varies across different time periods
-- **League Characteristics**: Different leagues show varying predictability
-- **Market Efficiency**: More recent data shows better prediction accuracy
+MIT
