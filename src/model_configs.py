@@ -6,6 +6,7 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier,
 from sklearn.naive_bayes import GaussianNB
 from sklearn.linear_model import LogisticRegression
 from catboost import CatBoostClassifier
+from xgboost import XGBClassifier
 from typing import Dict, Any, List
 
 
@@ -32,33 +33,33 @@ MODEL_CONFIGS = {
         'use_smote': True,
         'use_class_weights': False
     },
-    
+
     'random_forest': {
         'class': RandomForestClassifier,
         'params': {
             'n_estimators': 100,
-            'max_depth': 10,
-            'min_samples_split': 5,
-            'min_samples_leaf': 2,
+            'min_samples_split': 10,
+            'min_samples_leaf': 4,
             'random_state': 42,
-            'n_jobs': -1
         },
         'use_smote': False,
-        'use_class_weights': True
+        'use_class_weights': False
     },
-    
+
     'gradient_boosting': {
         'class': GradientBoostingClassifier,
         'params': {
-            'n_estimators': 100,
+            'n_estimators': 1000,
             'learning_rate': 0.1,
-            'max_depth': 6,
+            'max_depth': 3,
             'min_samples_split': 5,
             'min_samples_leaf': 2,
-            'random_state': 42
+            'random_state': 42,
+            'subsample': 0.85,
+            'max_features': 'sqrt',
         },
         'use_smote': False,
-        'use_class_weights': True
+        'use_class_weights': False
     },
     
     'naive_bayes': {
@@ -67,8 +68,28 @@ MODEL_CONFIGS = {
             'var_smoothing': 1e-9
         },
         'use_smote': False,
-        'use_class_weights': True
+        'use_class_weights': False
     },
+
+    'xgboost': {
+        'class': XGBClassifier,
+        'params': {
+            'n_estimators': 1000,
+            'colsample_bytree': 0.8,
+            'gamma': 1,
+            'learning_rate': 0.1,
+            'max_bin': 256,
+            'max_depth': 4,
+            'min_child_weight': 4,
+            'reg_alpha': 0.05,
+            'reg_lambda': 1,
+            'subsample': 1.0,
+        },
+        'use_smote': False,
+        'use_class_weights': True,
+        'class_weight': {0: 1.0, 1: 1.15, 2: 1.0}
+    },
+        
     
     'stacking': {
         'class': StackingClassifier,
@@ -83,7 +104,7 @@ MODEL_CONFIGS = {
             'n_jobs': -1
         },
         'use_smote': False,
-        'use_class_weights': True
+        'use_class_weights': False
     }
 }
 

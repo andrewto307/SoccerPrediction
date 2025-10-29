@@ -83,7 +83,7 @@ def main():
     # Model selection
     model_type = st.sidebar.selectbox(
         "Select Model Type",
-        options=['catboost', 'random_forest', 'gradient_boosting', 'naive_bayes', 'stacking'],
+        options=['catboost', 'random_forest', 'gradient_boosting', 'xgboost', 'stacking'],
         index=0,
         help="Choose the machine learning model to train"
     )

@@ -13,7 +13,7 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier,
 from sklearn.naive_bayes import GaussianNB
 
 from catboost import CatBoostClassifier
-# from xgboost import XGBClassifier
+from xgboost import XGBClassifier
 
 # Import our custom trainers and configurations
 from catboost_trainer import CatBoostTrainer
@@ -213,17 +213,32 @@ class SoccerPredictionModel:
             model_class = model_config['class']
             default_params = model_config['params'].copy()
             
-            # Add class weights if needed
-            if use_class_weights and 'class_weight' not in default_params:
-                class_weights = trainer.get_class_weights(y_train)
-                default_params['class_weight'] = class_weights
+            # Handle class imbalance
+            sample_weight = None
+            if use_class_weights:
+                config_class_weight = model_config.get('class_weight')
+                if self.model_type == 'xgboost':
+                    # XGBoost: convert configured class weights to per-sample weights
+                    if config_class_weight is not None:
+                        from sklearn.utils.class_weight import compute_sample_weight
+                        sample_weight = compute_sample_weight(class_weight=config_class_weight, y=ytr_bal)
+                else:
+                    # sklearn-compatible models: pass class_weight directly
+                    if config_class_weight is not None:
+                        default_params['class_weight'] = config_class_weight
+                    elif 'class_weight' not in default_params:
+                        class_weights = trainer.get_class_weights(y_train)
+                        default_params['class_weight'] = class_weights
             
             # Use custom hyperparameters if provided
             if hyperparameters:
                 default_params.update(hyperparameters)
             
             self.model = model_class(**default_params)
-            self.model.fit(Xtr_bal, ytr_bal)
+            if sample_weight is not None:
+                self.model.fit(Xtr_bal, ytr_bal, sample_weight=sample_weight)
+            else:
+                self.model.fit(Xtr_bal, ytr_bal)
             
             # Store trainer for predictions
             self.model_trainer = trainer
