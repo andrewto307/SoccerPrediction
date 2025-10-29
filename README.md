@@ -4,12 +4,12 @@ A machine learning system that predicts soccer match outcomes using historical d
 
 ## Overview
 
-This system provides accurate predictions for soccer match results using multiple machine learning algorithms. It processes historical match data, betting odds, and team performance metrics to generate reliable predictions with up to 63% accuracy.
+This system provides accurate predictions for soccer match results using multiple machine learning algorithms. It processes historical match data, betting odds, and team performance metrics to generate reliable predictions with up to 62% accuracy.
 
 ## Key Capabilities
 
 - **Match Outcome Prediction**: Predict home wins, draws, and away wins
-- **Multiple Algorithms**: CatBoost, Random Forest, XGBoost, Gradient Boosting, Naive Bayes, and Stacking Classifier
+- **Multiple Algorithms**: Random Forest, XGBoost, Gradient Boosting, SGD Classifier, Stacking Classifier, MLP Classifier
 - **Interactive Dashboard**: Web-based interface for model training and predictions
 - **Historical Analysis**: Analyze past matches and model performance
 - **Production Deployment**: Docker containerization for easy deployment
