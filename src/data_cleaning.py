@@ -32,7 +32,6 @@ class DataCleaning():
         
         out = df.copy()
         
-        # Fill NaN values exactly as in the notebook
         for col in home_cols:
             if col in out.columns:
                 out[col] = out[col].fillna(out[avg_home])
@@ -63,7 +62,6 @@ class DataCleaning():
 
         common = train_df_standardize.columns.intersection(test_df_standardize.columns)
 
-        # Use the exact same approach as the notebook - just take the intersection
         return train_df_standardize[common].copy(), test_df_standardize[common].copy()
     
     def clean(self, home_cols: list, draw_cols: list, away_cols: list):

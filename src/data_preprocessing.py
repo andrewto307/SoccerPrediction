@@ -261,7 +261,7 @@ class DataPreprocessing:
 
     def add_engineered_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Add engineered features exactly as in the notebook.
+        Add engineered features
         Creates: pH_mean, pD_mean, pA_mean, home_adv, draw_tightness, elo_diff
         """
         out = df.copy()
@@ -276,16 +276,16 @@ class DataPreprocessing:
         D_cols = [f"{p}D" for p in bookies]
         A_cols = [f"{p}A" for p in bookies]
 
-        # 2) Consensus means (market consensus) - matches notebook
+        # 2) Consensus means (market consensus)
         out["pH_mean"] = out[H_cols].mean(axis=1)
         out["pD_mean"] = out[D_cols].mean(axis=1)
         out["pA_mean"] = out[A_cols].mean(axis=1)
 
-        # 3) Engineered odds features - matches notebook exactly
+        # 3) Engineered odds features
         out["home_adv"] = out["pH_mean"] - out["pA_mean"]
         out["draw_tightness"] = 1.0 - (out["pH_mean"] + out["pA_mean"])
 
-        # 4) Elo feature - matches notebook
+        # 4) Elo feature
         if "home_elo" in out.columns and "away_elo" in out.columns:
             out["elo_diff"] = out["home_elo"] - out["away_elo"]
         else:

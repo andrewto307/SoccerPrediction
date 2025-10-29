@@ -149,19 +149,31 @@ class SoccerPredictionModel:
         Returns:
             Tuple of (X_train_processed, X_test_processed)
         """
-        # Get feature list from centralized configuration
-        feat_all = get_feature_list(feature_set)
+        # Get feature groups to ensure correct order (matches notebook: feat_cats + form + odds)
         feat_cats = get_categorical_features(feature_set)
+        feat_all = get_feature_list(feature_set)
+        
+        # Explicitly reorder to match notebook: categoricals first, then form, then odds
+        # This ensures tensor conversion has correct column order
+        if feature_set == 'odds_form_teams':
+            # Match notebook's explicit order: feat_cats + form_features + bookmaker_odds
+            from model_configs import FEATURE_GROUPS
+            form_features = FEATURE_GROUPS[feature_set]['form']
+            bookmaker_odds = FEATURE_GROUPS[feature_set]['bookmaker_odds']
+            feat_all = feat_cats + form_features + bookmaker_odds
 
-        # Select only the features for this feature set
-        X_train = X_train[feat_all]
-        X_test = X_test[feat_all]
+        X_train = X_train[feat_all].copy()
+        X_test = X_test[feat_all].copy()
 
-        # Convert categorical features to strings
+        # Convert categorical features to strings (handle already-encoded columns)
         for c in feat_cats:
             if c in X_train.columns:
-                X_train.loc[:, c] = X_train.loc[:, c].astype("string")
-                X_test.loc[:, c] = X_test.loc[:, c].astype("string")
+                if pd.api.types.is_numeric_dtype(X_train[c]):
+                    continue
+                # Convert to object dtype first to avoid dtype incompatibility warning
+                # Use .loc to avoid SettingWithCopyWarning
+                X_train.loc[:, c] = X_train.loc[:, c].astype(object).astype(str)
+                X_test.loc[:, c] = X_test.loc[:, c].astype(object).astype(str)
         
         return X_train, X_test
     

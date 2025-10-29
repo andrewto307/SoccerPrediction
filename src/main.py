@@ -36,7 +36,7 @@ def main():
         print("🧹 Cleaning data...")
         cleaning = data_cleaning.DataCleaning(training_dataset, testing_dataset)
         
-        # Use column configuration that matches the notebook exactly
+        # Use column configuration 
         home_cols = ["GBH", "IWH", "LBH", "SBH", "PSH", "SJH", "VCH", "BSH", "PSCH"]
         draw_cols = ["GBD", "IWD", "LBD", "SBD", "PSD", "SJD", "VCD", "BSD", "PSCD"]
         away_cols = ["GBA", "IWA", "LBA", "SBA", "PSA", "SJA", "VCA", "BSA", "PSCA"]

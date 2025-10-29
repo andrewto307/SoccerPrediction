@@ -15,7 +15,6 @@ class CatBoostTrainer(BaseTrainer):
     def prepare_data(self, X_train: pd.DataFrame, y_train: pd.Series, 
                     X_test: pd.DataFrame, y_test: pd.Series) -> Tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series]:
         """
-        Prepare data for CatBoost training (same as notebook Cell 26).
         
         Args:
             X_train: Training features
@@ -26,7 +25,6 @@ class CatBoostTrainer(BaseTrainer):
         Returns:
             Tuple of (Xtr_bal, ytr_bal, Xte_eval, y_test)
         """
-        # Convert categorical features to strings (same as notebook)
         Xtr, Xte = self.convert_categorical_to_strings(X_train, X_test)
         
         # Encode categorical features for SMOTE (fit only on training data for CatBoost)
@@ -35,7 +33,6 @@ class CatBoostTrainer(BaseTrainer):
         # Apply SMOTENC
         Xtr_bal, ytr_bal = self.apply_smote(Xtr_enc, y_train)
         
-        # For eval_set, use original test data with strings (same as notebook)
         Xte_eval = Xte.copy()
         
         return Xtr_bal, ytr_bal, Xte_eval, y_test
@@ -44,7 +41,6 @@ class CatBoostTrainer(BaseTrainer):
               X_test: pd.DataFrame, y_test: pd.Series,
               hyperparameters: Dict[str, Any] = None) -> CatBoostClassifier:
         """
-        Train CatBoost model (same as notebook Cell 26).
         
         Args:
             X_train: Training features
@@ -71,7 +67,6 @@ class CatBoostTrainer(BaseTrainer):
         # Create and train model
         model = CatBoostClassifier(**default_params)
         
-        # Train with original test data for eval_set (same as notebook)
         model.fit(
             Xtr_bal,
             ytr_bal,
@@ -85,7 +80,6 @@ class CatBoostTrainer(BaseTrainer):
     
     def predict(self, model: CatBoostClassifier, X: pd.DataFrame) -> np.ndarray:
         """
-        Make predictions using CatBoost model (same as notebook).
         
         Args:
             model: Trained CatBoost model
@@ -94,13 +88,11 @@ class CatBoostTrainer(BaseTrainer):
         Returns:
             Predicted labels
         """
-        # Ensure categorical features are strings (same as notebook)
         X_original = self.prepare_categorical_for_prediction(X)
         return model.predict(X_original)
     
     def predict_proba(self, model: CatBoostClassifier, X: pd.DataFrame) -> np.ndarray:
         """
-        Get prediction probabilities using CatBoost model (same as notebook).
         
         Args:
             model: Trained CatBoost model
@@ -108,7 +100,6 @@ class CatBoostTrainer(BaseTrainer):
             
         Returns:
             Prediction probabilities
-        """
-        # Ensure categorical features are strings (same as notebook)
+        """        # Ensure categorical features are strings (same as notebook)
         X_original = self.prepare_categorical_for_prediction(X)
         return model.predict_proba(X_original)
