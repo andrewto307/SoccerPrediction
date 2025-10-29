@@ -29,7 +29,7 @@ cd SoccerPrediction
 ./docker-run.sh
 ```
 
-The application will be available at `http://localhost:8501`.
+The application will be available at `http://localhost:8000`.
 
 ### Alternative: Local Installation
 
