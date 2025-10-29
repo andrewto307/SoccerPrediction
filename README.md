@@ -53,8 +53,8 @@ streamlit run src/app.py
 4. **View Results**: See prediction probabilities and model performance metrics
 
 ## Data Sources
-
-The system uses comprehensive match data including:
+https://sports-statistics.com/sports-data/soccer-datasets/
+The system uses comprehensive match data of 12 La Liga seasons from 2008-202, including:
 
 - **Match Results**: Historical outcomes from multiple seasons
 - **Betting Odds**: Multiple bookmaker odds for market intelligence
