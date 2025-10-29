@@ -16,7 +16,7 @@ This system provides accurate predictions for soccer match results using multipl
 
 ## Performance
 
-CatBoost achieves the best performance with 63% accuracy using SMOTE for class balancing. The system supports multiple algorithms including Random Forest, XGBoost, Gradient Boosting, Naive Bayes, and Stacking Classifier for comparison and experimentation.
+CatBoost achieves the best performance with 62% accuracy using SMOTE for class balancing. The system supports multiple algorithms including Random Forest, XGBoost, Gradient Boosting, SGD Classifier, Stacking Classifier and MLP Classifier for comparison and experimentation.
 
 ## Quick Start
 
