@@ -1,8 +1,12 @@
+import logging
 import pandas as pd
 import numpy as np
 from datetime import datetime
+from pathlib import Path
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder, MinMaxScaler
 from sklearn.base import BaseEstimator
+
+logger = logging.getLogger(__name__)
 
 
 class DataPreprocessing:
@@ -63,7 +67,11 @@ class DataPreprocessing:
                     past_n_matches.loc[past_n_matches["AwayTeam"] == team, "FTHG"].sum()
         )
 
-        avg_goal_diff = (goal_scored - goals_conceded) / number_of_matches
+        actual_matches = len(past_n_matches)
+        if actual_matches == 0:
+            return 0.0, 0, 0.0
+
+        avg_goal_diff = (goal_scored - goals_conceded) / actual_matches
 
         points = 0
         for _, match in past_n_matches.iterrows():
@@ -80,7 +88,7 @@ class DataPreprocessing:
 
         shot_on_target = (past_n_matches.loc[past_n_matches["HomeTeam"] == team, "HST"].sum() +
                         past_n_matches.loc[past_n_matches["AwayTeam"] == team, "AST"].sum()
-        ) / number_of_matches
+        ) / actual_matches
         
         return avg_goal_diff, points, shot_on_target
 
@@ -365,7 +373,8 @@ class DataPreprocessing:
 
         # 7) Persist column order for reproducibility
         feature_columns = X_train.columns
-        feature_columns.to_series(name="feature").to_csv("../data/feature_columns.csv", index=False)
-        print(f"Saved feature_columns.csv with {len(feature_columns)} columns")
+        feature_columns_path = Path(__file__).parent.parent / "data" / "feature_columns.csv"
+        feature_columns.to_series(name="feature").to_csv(feature_columns_path, index=False)
+        logger.info("Saved feature_columns.csv with %d columns", len(feature_columns))
 
         return X_train, X_test, y_train, y_test
