@@ -1,10 +1,18 @@
+import logging
 import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
 from model import SoccerPredictionModel
+from model_configs import OUTCOME_MAP
 import torch
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
+
+_ROOT = Path(__file__).parent.parent
+_DATA_DIR = _ROOT / "data"
+_MODELS_DIR = _ROOT / "models"
 
 # Page configuration
 st.set_page_config(
@@ -36,14 +44,14 @@ def load_raw_data():
     """Load raw data for match selection"""
     try:
         # Load raw data first to get Date column
-        X_test_full = pd.read_csv("data/X_test.csv", index_col=0)
-        y_test = pd.read_csv("data/y_test.csv", index_col=0).squeeze()
-        
+        X_test_full = pd.read_csv(_DATA_DIR / "X_test.csv", index_col=0)
+        y_test = pd.read_csv(_DATA_DIR / "y_test.csv", index_col=0).squeeze()
+
         # Create match information dataframe from raw data
         matches = X_test_full[['Date', 'HomeTeam', 'AwayTeam']].copy()
         matches['Date'] = pd.to_datetime(matches['Date'])
         matches['Match'] = matches['HomeTeam'] + ' vs ' + matches['AwayTeam']
-        matches['Actual_Result'] = y_test.map({0: 'Away Win', 1: 'Draw', 2: 'Home Win'})
+        matches['Actual_Result'] = y_test.map(OUTCOME_MAP)
         
         # Load preprocessed data for predictions
         model = SoccerPredictionModel()
@@ -71,12 +79,12 @@ def load_mlp_model(X_train, X_test, y_test):
     trainer = BaseTrainer(categorical_features=feat_cats, random_state=42)
     X_train_prep, X_test_prep = trainer.convert_categorical_to_strings(X_train_prep, X_test_prep)
     X_train_prep, X_test_prep = trainer.encode_categorical_features(
-        X_train_prep, X_test_prep, fit_on_combined=False 
+        X_train_prep, X_test_prep, fit_on_combined=True
     )
     encoders = trainer.label_encoders
     
     # Load model
-    model_path = Path("models/mlp_model.ts")
+    model_path = _MODELS_DIR / "mlp_model.ts"
     
     if not model_path.exists():
         raise FileNotFoundError(f"Model file not found: {model_path.absolute()}")
@@ -324,8 +332,7 @@ def main():
                                 probabilities = probabilities_result
                             
                             # Convert prediction to readable format
-                            result_map = {0: 'Away Win', 1: 'Draw', 2: 'Home Win'}
-                            predicted_result = result_map[prediction]
+                            predicted_result = OUTCOME_MAP[prediction]
                             actual_result = selected_row['Actual_Result']
                             
                             # Display results
