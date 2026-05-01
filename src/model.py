@@ -2,11 +2,14 @@
 Model class for soccer prediction. Main interface for training and predicting using all the specialized trainers.
 """
 
+import logging
 import pandas as pd
 import numpy as np
 import pickle
 from pathlib import Path
 from typing import List, Dict, Tuple, Optional, Union
+
+logger = logging.getLogger(__name__)
 
 from sklearn.metrics import accuracy_score, classification_report, log_loss
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, StackingClassifier
@@ -239,7 +242,7 @@ class SoccerPredictionModel:
                     if config_class_weight is not None:
                         default_params['class_weight'] = config_class_weight
                     elif 'class_weight' not in default_params:
-                        class_weights = trainer.get_class_weights(y_train)
+                        class_weights = trainer.get_class_weights(ytr_bal)
                         default_params['class_weight'] = class_weights
             
             # Use custom hyperparameters if provided
@@ -255,7 +258,7 @@ class SoccerPredictionModel:
             # Store trainer for predictions
             self.model_trainer = trainer
         
-        print("Model training completed!")
+        logger.info("Model training completed!")
     
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         """
@@ -321,14 +324,13 @@ class SoccerPredictionModel:
         accuracy = accuracy_score(y_test, y_pred)
         logloss = log_loss(y_test, y_proba)
         
-        print(f"Test Set Accuracy: {accuracy:.2f}")
-        print(classification_report(y_test, y_pred, zero_division=0))
-        
-        # Get best score if available (only for CatBoost and XGBoost)
+        logger.info("Test Set Accuracy: %.2f", accuracy)
+        logger.info("\n%s", classification_report(y_test, y_pred, zero_division=0))
+
         best_score = None
         if hasattr(self.model, 'get_best_score'):
             best_score = self.model.get_best_score()
-            print(f"Best Score: {best_score}")
+            logger.info("Best Score: %s", best_score)
         
         # Calculate additional metrics
         from sklearn.metrics import precision_score, recall_score, f1_score
@@ -370,7 +372,7 @@ class SoccerPredictionModel:
         with open(filepath, 'wb') as f:
             pickle.dump(model_data, f)
         
-        print(f"Model saved to {filepath}")
+        logger.info("Model saved to %s", filepath)
     
     def load_model(self, filepath: str) -> None:
         """
@@ -388,6 +390,6 @@ class SoccerPredictionModel:
         self.smote = model_data["smote"]
         self.categorical_features = model_data["categorical_features"]
         
-        print(f"Model loaded from {filepath}")
+        logger.info("Model loaded from %s", filepath)
 
 
