@@ -1,13 +1,17 @@
+# Live prediction system (API + Streamlit UI) + test suite.
+# This is the union of requirements-api.txt and requirements-app.txt, plus pytest.
+# Training-only dependencies (torch, imbalanced-learn, ...) live in
+# proof_of_concept/requirements-training.txt.
+fastapi==0.138.1
+uvicorn[standard]==0.49.0
+httpx==0.28.1
 pandas==2.3.1
 numpy==2.3.2
 scikit-learn==1.7.1
 catboost==1.2.8
 xgboost==3.0.4
-torch==2.8.0
+pyyaml==6.0.2
+python-dotenv==1.2.2
 streamlit==1.48.0
 plotly==5.15.0
-imbalanced-learn==0.14.0
-joblib==1.5.1
-pyyaml==6.0.2
 pytest==8.4.2
-psutil==7.0.0

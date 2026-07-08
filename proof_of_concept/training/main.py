@@ -7,8 +7,11 @@ import sys
 import logging
 from pathlib import Path
 
-# Add current directory to path so we can import our modules
-sys.path.insert(0, str(Path(__file__).parent))
+# This module lives in proof_of_concept/training/. Put its own directory on the path
+# (for the sibling trainer modules) and the repo's src/ (for the shared data_* and
+# model_configs modules that the live pipeline also uses).
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 import pandas as pd
 import data_collection
@@ -18,8 +21,8 @@ import model
 from sklearn.preprocessing import MinMaxScaler
 import argparse
 
-SRC_DIR = Path(__file__).parent
-DATA_DIR = SRC_DIR.parent / "data"
+SRC_DIR = Path(__file__).resolve().parent
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"  # shared repo data/ (see path shim above)
 
 logging.basicConfig(
     level=logging.INFO,

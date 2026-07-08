@@ -1,36 +1,28 @@
 #!/bin/bash
+# Soccer Prediction — build & run the API + UI with Docker Compose.
+set -e
 
-# Soccer Prediction Docker Runner Script
+echo "Soccer Prediction — Docker (API + UI)"
+echo "====================================="
 
-echo "Soccer Prediction Docker Setup"
-echo "================================="
-
-# Check if Docker is running
+# Docker must be running.
 if ! docker info > /dev/null 2>&1; then
-    echo "Docker is not running. Please start Docker first."
+    echo "Docker is not running. Please start Docker Desktop first."
     exit 1
 fi
 
-# Build the Docker image
-echo "🔨 Building Docker image..."
-docker build -t soccer-prediction .
-
-# Stop any existing container
-echo "Stopping any existing container..."
-docker stop soccer-app 2>/dev/null || true
-docker rm soccer-app 2>/dev/null || true
-
-if [ $? -eq 0 ]; then
-    echo "Docker image built successfully!"
-else
-    echo "Failed to build Docker image"
+# The API needs API_FOOTBALL_KEY, read from .env via docker-compose's env_file.
+if [ ! -f .env ]; then
+    echo "No .env found. Create one from the template and add your key:"
+    echo "    cp .env.example .env    # then set API_FOOTBALL_KEY"
     exit 1
 fi
 
-# Run the container
-echo "Starting Soccer Prediction app..."
-echo "App will be available at: http://localhost:8000"
-echo "Press Ctrl+C to stop the app"
+echo "Building and starting services..."
+echo "  UI  -> http://localhost:8501"
+echo "  API -> http://localhost:8000  (docs at /docs)"
+echo "Press Ctrl+C to stop."
 echo ""
 
-docker run -p 8000:8000 --name soccer-app soccer-prediction
+# Build both targets and start; --build ensures code changes are picked up.
+docker compose up --build

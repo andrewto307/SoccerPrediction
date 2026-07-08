@@ -1,21 +1,49 @@
-version: '3.8'
+# Two services from one multi-target image:
+#   api  - FastAPI prediction backend (loads the CatBoost model)      -> localhost:8000
+#   app  - Streamlit UI, a thin client that calls the API             -> localhost:8501
+#
+# Supply your API-Football key in a .env file (see .env.example):
+#   API_FOOTBALL_KEY=...
+# Start with:  docker compose up --build
 
 services:
-  soccer-prediction:
-    build: .
+  api:
+    build:
+      context: .
+      target: api
+    image: soccer-prediction-api
     ports:
       - "8000:8000"
-    volumes:
-      # Mount data directory for persistence
-      - ./data:/app/data
-      # Mount source code for development (optional)
-      - ./src:/app/src
+    env_file:
+      - .env                      # supplies API_FOOTBALL_KEY (+ optional overrides)
     environment:
-      - PYTHONPATH=/app/src
-    restart: unless-stopped
+      - LIVE_PROVIDER=api_football
+      - HOST=0.0.0.0
+      - PORT=8000
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/_stcore/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 20s
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      target: app
+    image: soccer-prediction-app
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://api:8000   # reach the API over the compose network
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped

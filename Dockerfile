@@ -1,40 +1,39 @@
-# Use Python 3.11 slim image as base
-FROM python:3.11-slim
+# Multi-target build: one shared base, two runtime images (api, app).
+# Build a specific target with `--target api` / `--target app`
+# (docker-compose selects the target per service).
 
-# Set working directory
-WORKDIR /app
-
-# Set environment variables
+# ---------- base ----------
+FROM python:3.11-slim AS base
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    STREAMLIT_SERVER_PORT=8000 \
-    STREAMLIT_SERVER_ADDRESS=0.0.0.0
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
+    PYTHONUNBUFFERED=1
+WORKDIR /app
+# curl is used by the container healthchecks
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
-COPY requirements.txt .
-
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy the application code
-COPY . .
-
-# Ensure data directory exists and copy data files
-RUN mkdir -p data
-COPY data/ data/
-
-# Expose the port Streamlit runs on
+# ---------- api: FastAPI prediction service ----------
+FROM base AS api
+COPY requirements-api.txt .
+RUN pip install --no-cache-dir -r requirements-api.txt
+# Code + artifacts the API needs at runtime.
+COPY src/ ./src/
+COPY models/ ./models/
+COPY data/ ./data/
+# form_scaler.pkl is generated (not committed) — build it so the model loads at startup.
+RUN cd src && python -m live.build_scaler
+ENV LIVE_PROVIDER=api_football \
+    HOST=0.0.0.0 \
+    PORT=8000
 EXPOSE 8000
+WORKDIR /app/src
+CMD ["python", "serve.py"]
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/_stcore/health || exit 1
-
-# Run the Streamlit app
-CMD ["streamlit", "run", "src/app.py", "--server.port=8000", "--server.address=0.0.0.0"]
+# ---------- app: Streamlit UI (thin client, calls the API) ----------
+FROM base AS app
+COPY requirements-app.txt .
+RUN pip install --no-cache-dir -r requirements-app.txt
+COPY src/ ./src/
+ENV API_URL=http://api:8000
+EXPOSE 8501
+WORKDIR /app/src
+CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]

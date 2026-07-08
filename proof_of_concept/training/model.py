@@ -71,11 +71,11 @@ class SoccerPredictionModel:
         """
         if data_dir is None:
             # Auto-detect data directory
-            current_dir = Path(__file__).parent
+            current_dir = Path(__file__).resolve().parent
             possible_paths = [
-                current_dir / "data",  # When running from src/
-                current_dir.parent / "data",  # When running from SoccerPrediction/
-                current_dir.parent.parent / "SoccerPrediction" / "data"  # When running from root
+                current_dir.parents[1] / "data",  # repo data/ (this file lives in proof_of_concept/training/)
+                current_dir / "data",
+                current_dir.parent / "data",
             ]
             
             for path in possible_paths:
@@ -389,7 +389,17 @@ class SoccerPredictionModel:
         self.label_encoders = model_data["label_encoders"]
         self.smote = model_data["smote"]
         self.categorical_features = model_data["categorical_features"]
-        
+        self.model_type = model_data.get("model_type", self.model_type)
+
+        # The trainer that predict()/predict_proba() delegate to is created in train()
+        # and is NOT persisted in the pickle. Reconstruct it so a freshly loaded model
+        # can predict without retraining. For CatBoost the trainer only needs to know the
+        # categorical feature names (it passes them to CatBoost as strings at predict time).
+        if self.model_type == 'catboost':
+            self.catboost_trainer = CatBoostTrainer(self.categorical_features, random_state=42)
+        else:
+            self.model_trainer = ModelTrainer(self.categorical_features, random_state=42)
+
         logger.info("Model loaded from %s", filepath)
 
 
