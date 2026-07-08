@@ -170,14 +170,18 @@ def get_feature_list(feature_set: str) -> List[str]:
 def get_categorical_features(feature_set: str) -> List[str]:
     """
     Get categorical features for a given feature set.
-    
+
     Args:
         feature_set: Name of the feature set
-        
+
     Returns:
         List of categorical feature names
     """
     if feature_set not in FEATURE_GROUPS:
         raise ValueError(f"Unknown feature set: {feature_set}")
-    
+
     return FEATURE_GROUPS[feature_set].get('categorical', [])
+
+
+# Single source of truth for label → readable outcome
+OUTCOME_MAP = {0: 'Away Win', 1: 'Draw', 2: 'Home Win'}

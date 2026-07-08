@@ -1,0 +1,6 @@
+# Dependencies for the Streamlit UI (src/app.py). It's a thin client that calls
+# the API over HTTP, so it needs no ML libraries (no catboost / torch / sklearn).
+streamlit==1.48.0
+plotly==5.15.0
+pandas==2.3.1
+httpx==0.28.1

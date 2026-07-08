@@ -41,21 +41,31 @@ cd SoccerPrediction
 # Install dependencies
 pip install -r requirements.txt
 
-# Run the application
+# 1) start the prediction API (loads the trained model)
+python src/serve.py
+
+# 2) in another terminal, start the app (it calls the API)
 streamlit run src/app.py
 ```
 
+See [LIVE.md](LIVE.md) for the full live-prediction service + API documentation.
+
 ## Usage
 
-1. **Select Model**: Choose from available algorithms in the sidebar
-2. **Train Model**: Click "Train Model" to train the selected algorithm
-3. **Make Predictions**: Navigate to "Match Prediction" tab to predict outcomes for historical matches
-4. **View Results**: See prediction probabilities and model performance metrics
+The app is a single **live prediction** page:
+
+1. Pick the **home** and **away** teams and the **match date**
+2. Enter the **pre-match odds** (decimal)
+3. Click **Predict** — the app calls the API, which runs the CatBoost model and returns the outcome + probabilities
+
+> The model-training and model-selection experiments (how CatBoost was chosen as the
+> best model) are preserved under [`proof_of_concept/`](proof_of_concept/) and are
+> intentionally not part of the app.
 
 ## Data Sources
 <https://sports-statistics.com/sports-data/soccer-datasets/>
 
-The system uses comprehensive match data of 12 La Liga seasons from 2008-202, including:
+The system uses comprehensive match data of 12 La Liga seasons from 2008-2020, including:
 
 - **Match Results**: Historical outcomes from multiple seasons
 - **Betting Odds**: Multiple bookmaker odds for market intelligence
@@ -67,24 +77,24 @@ The system uses comprehensive match data of 12 La Liga seasons from 2008-202, in
 
 ```
 SoccerPrediction/
-├── src/
-│   ├── app.py                 # Streamlit web application
-│   ├── main.py               # Command-line interface
-│   ├── model.py              # Core ML model implementation
-│   ├── data_collection.py    # Data collection module
-│   ├── data_cleaning.py      # Data cleaning pipeline
-│   ├── data_preprocessing.py # Data preprocessing pipeline
-│   ├── model_configs.py      # Model configurations
-│   ├── base_trainer.py       # Base trainer class
-│   ├── model_trainer.py      # General model trainer
-│   └── catboost_trainer.py   # CatBoost-specific trainer
-├── data/                     # Training datasets and configurations
-├── notebook/                 # Jupyter notebooks for development
-├── requirements.txt          # Python dependencies
-├── Dockerfile               # Docker configuration
-├── docker-compose.yml       # Docker Compose setup
-├── docker-run.sh           # Quick Docker deployment script
-└── DOCKER.md               # Docker documentation
+├── src/                          # live prediction service (what the app uses)
+│   ├── app.py                    # Streamlit UI — single live-prediction page (calls the API)
+│   ├── serve.py                  # launcher for the API
+│   ├── api/                      # FastAPI service (/predict, /health, ...)
+│   ├── live/                     # providers, feature builder, predictor, team/bookmaker maps
+│   ├── data_collection.py        # load season CSVs        ┐
+│   ├── data_cleaning.py          # clean / standardize     │ shared feature engine
+│   ├── data_preprocessing.py     # form / Elo / odds       │ (reused by live prediction)
+│   └── model_configs.py          # feature groups, OUTCOME_MAP  ┘
+├── models/                       # cb_final.pkl (served model) + form_scaler.pkl
+├── data/                         # season CSVs, train/test splits, live samples
+├── proof_of_concept/             # model training & selection (NOT part of the app)
+│   ├── notebooks/                # exploration notebooks
+│   ├── training/                 # main.py, model.py, trainers
+│   └── models/                   # all comparison models + metrics.json
+├── LIVE.md                       # live prediction service documentation
+├── requirements.txt
+└── Dockerfile / docker-compose.yml / docker-run.sh / DOCKER.md   # (predate the API split)
 ```
 
 ## Docker Deployment

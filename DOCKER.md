@@ -1,172 +1,64 @@
-# 🐳 Docker Setup for Soccer Prediction System
+# 🐳 Docker Setup
 
-This document explains how to run the Soccer Prediction System using Docker.
+The system runs as **two containers** from one multi-target image:
 
-## 📋 Prerequisites
+| Service | What it is | URL |
+|---|---|---|
+| `api` | FastAPI backend — loads the CatBoost model, serves `/predict` | http://localhost:8000 (`/docs`) |
+| `app` | Streamlit UI — a thin client that calls the API | http://localhost:8501 |
 
-- [Docker](https://docs.docker.com/get-docker/) installed on your system
-- [Docker Compose](https://docs.docker.com/compose/install/) (optional, for advanced usage)
+The UI reaches the API over the compose network (`API_URL=http://api:8000`).
 
-## 🚀 Quick Start
+## Prerequisites
 
-### Option 1: Using the provided script (Recommended)
+- [Docker](https://docs.docker.com/get-docker/) (Desktop, with Compose v2)
+- An [API-Football](https://www.api-football.com) key
 
-```bash
-# Make sure you're in the SoccerPrediction directory
-cd SoccerPrediction
+## 1. Configure the key
 
-# Run the Docker setup script
-./docker-run.sh
-```
-
-### Option 2: Using Docker commands directly
+The API reads `API_FOOTBALL_KEY` from a `.env` file (passed at runtime — **not** baked
+into the image):
 
 ```bash
-# Build the Docker image
-docker build -t soccer-prediction .
-
-# Run the container
-docker run -p 8000:8000 -v $(pwd)/data:/app/data soccer-prediction
+cp .env.example .env      # then edit .env and set API_FOOTBALL_KEY=...
 ```
 
-### Option 3: Using Docker Compose
+## 2. Run
 
 ```bash
-# Start the application
-docker-compose up
-
-# Run in background
-docker-compose up -d
-
-# Stop the application
-docker-compose down
+./docker-run.sh           # convenience wrapper, or:
+docker compose up --build
 ```
 
-## 🌐 Accessing the Application
+Then open **http://localhost:8501** for the UI, or **http://localhost:8000/docs** for the API.
 
-Once the container is running, open your web browser and go to:
-
-**http://localhost:8000**
-
-## 📁 Data Persistence
-
-The Docker setup includes your training data and models in the container:
-
-- Training data: `/app/data/X_train.csv`, `/app/data/y_train.csv`
-- Test data: `/app/data/X_test.csv`, `/app/data/y_test.csv`
-- Models: Will be saved in the container's `/app/data` directory when trained
-- Raw data: All season CSV files (07-08 to 19-20) are included
-
-## 🔧 Development Mode
-
-For development with live code changes:
+## Common commands
 
 ```bash
-# Using docker-compose with volume mounting
-docker-compose up --build
+docker compose up --build -d     # run in the background
+docker compose logs -f api       # follow API logs
+docker compose logs -f app       # follow UI logs
+docker compose down              # stop and remove the containers
 ```
 
-This will:
-- Mount your source code for live updates
-- Rebuild the image when changes are detected
-- Preserve data in the `data/` directory
+## Notes
 
-## 🧪 Running Tests in Docker
+- **Images are split by role.** The `api` image installs `requirements-api.txt`
+  (no Streamlit); the `app` image installs `requirements-app.txt` (no ML libraries).
+  Neither installs `torch` — that's training-only and lives in `proof_of_concept/`.
+- **The form scaler is generated at build time** (`python -m live.build_scaler`), so the
+  image is self-contained even though `models/form_scaler.pkl` isn't committed.
+- **Free-tier data:** API-Football's free plan has no current-season odds. The UI takes
+  odds as manual input; recent form is fetched when the configured `SEASON` is accessible
+  (set `SEASON` in `.env`, e.g. `2024`). See [LIVE.md](LIVE.md).
+- **No key / offline:** set `LIVE_PROVIDER=mock` in `.env` to run against the bundled
+  sample data without any external API calls.
+- **Secrets & size:** `.env` and `proof_of_concept/` are excluded via `.dockerignore`.
 
-```bash
-# Run all tests
-docker run --rm soccer-prediction python -m pytest tests/ -v
+## Troubleshooting
 
-# Run specific test
-docker run --rm soccer-prediction python -m pytest tests/test_data_loading.py -v
-```
-
-## 📊 Data Processing
-
-To run data processing (cleaning and preprocessing):
-
-```bash
-# Using docker-compose profile
-docker-compose --profile data-processing up data-processor
-
-# Or directly
-docker run --rm -v $(pwd)/data:/app/data soccer-prediction python src/main.py
-```
-
-## 🐛 Troubleshooting
-
-### Port already in use
-```bash
-# Check what's using port 8000
-lsof -i :8000
-
-# Use a different port
-docker run -p 8001:8000 soccer-prediction
-```
-
-### Permission issues
-```bash
-# Fix file permissions
-sudo chown -R $USER:$USER data/
-```
-
-### Container won't start
-```bash
-# Check container logs
-docker logs <container_id>
-
-# Run container interactively for debugging
-docker run -it soccer-prediction /bin/bash
-```
-
-## 📦 Image Details
-
-- **Base Image**: Python 3.11-slim
-- **Size**: ~1.5GB (includes all ML libraries)
-- **Port**: 8000 (Streamlit default)
-- **Health Check**: Built-in health monitoring
-
-## 🔄 Updating the Application
-
-```bash
-# Rebuild with latest changes
-docker build -t soccer-prediction .
-
-# Or using docker-compose
-docker-compose up --build
-```
-
-## 🚀 Production Deployment
-
-For production deployment, consider:
-
-1. **Environment Variables**: Set production configs
-2. **Resource Limits**: Add memory/CPU constraints
-3. **Security**: Use non-root user
-4. **Monitoring**: Add logging and metrics
-5. **Reverse Proxy**: Use nginx for production
-
-Example production docker-compose.yml:
-```yaml
-version: '3.8'
-services:
-  soccer-prediction:
-    build: .
-    ports:
-      - "80:8000"
-    environment:
-      - STREAMLIT_SERVER_HEADLESS=true
-    restart: always
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-          cpus: '1.0'
-```
-
-## 📝 Notes
-
-- The application will automatically load data from the `data/` directory
-- Models are trained on first run (may take a few minutes)
-- All data and models persist between container restarts
-- The container includes all necessary ML libraries (CatBoost, XGBoost, etc.)
+- **Port already in use** — change the host port mappings in `docker-compose.yml`
+  (e.g. `"8600:8501"`).
+- **UI shows "Cannot reach the prediction API"** — the `api` service isn't healthy yet;
+  check `docker compose logs api` (often a missing/invalid `API_FOOTBALL_KEY`).
+- **Rebuild after code changes** — `docker compose up --build`.

@@ -2,6 +2,7 @@
 Base trainer class with common functionality for all model trainers.
 """
 
+import logging
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
@@ -9,6 +10,8 @@ from imblearn.over_sampling import SMOTENC
 from collections import Counter
 from sklearn.utils import shuffle
 from typing import Tuple, Dict, Any, List
+
+logger = logging.getLogger(__name__)
 
 
 class BaseTrainer:
@@ -98,8 +101,8 @@ class BaseTrainer:
         
         Xtr_bal, ytr_bal = self.smote.fit_resample(X_train, y_train)
         
-        print("Before SMOTE:", Counter(y_train))
-        print("After SMOTE:", Counter(ytr_bal))
+        logger.info("Before SMOTE: %s", Counter(y_train))
+        logger.info("After SMOTE: %s", Counter(ytr_bal))
         
         # Convert back to DataFrame and shuffle
         Xtr_bal = pd.DataFrame(Xtr_bal, columns=X_train.columns)

@@ -37,6 +37,14 @@ ENV/
 .DS_Store
 Thumbs.db
 
+# Secrets — never bake into the image (passed at runtime via env_file)
+.env
+.env.*
+
+# Proof-of-concept training code / notebooks / comparison models — not needed by
+# the live images (keeps them small)
+proof_of_concept/
+
 # Git
 .git/
 .gitignore
