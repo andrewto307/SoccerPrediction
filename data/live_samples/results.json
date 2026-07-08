@@ -1,0 +1,8 @@
+[
+  {"date": "2026-08-01T19:00:00+00:00", "home_team": "Barcelona",   "away_team": "Sevilla",     "home_goals": 3, "away_goals": 1},
+  {"date": "2026-08-02T19:00:00+00:00", "home_team": "Valencia",    "away_team": "Real Madrid", "home_goals": 0, "away_goals": 2},
+  {"date": "2026-08-08T19:00:00+00:00", "home_team": "Real Madrid", "away_team": "Barcelona",   "home_goals": 1, "away_goals": 1},
+  {"date": "2026-08-09T19:00:00+00:00", "home_team": "Sevilla",     "away_team": "Valencia",    "home_goals": 2, "away_goals": 0},
+  {"date": "2026-08-15T19:00:00+00:00", "home_team": "Barcelona",   "away_team": "Valencia",    "home_goals": 4, "away_goals": 0},
+  {"date": "2026-08-16T19:00:00+00:00", "home_team": "Real Madrid", "away_team": "Sevilla",     "home_goals": 2, "away_goals": 1}
+]

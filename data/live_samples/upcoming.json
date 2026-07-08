@@ -1,0 +1,16 @@
+[
+  {
+    "fixture_id": 900001,
+    "date": "2026-08-22T19:00:00+00:00",
+    "home_team": "Barcelona",
+    "away_team": "Real Madrid",
+    "status": "NS"
+  },
+  {
+    "fixture_id": 900002,
+    "date": "2026-08-23T17:00:00+00:00",
+    "home_team": "Sevilla",
+    "away_team": "Valencia",
+    "status": "NS"
+  }
+]
