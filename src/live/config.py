@@ -55,3 +55,20 @@ MOCK_DATA_DIR = Path(_get("MOCK_DATA_DIR", str(ROOT / "data" / "live_samples")))
 FORM_WINDOW = int(_get("FORM_WINDOW", "5"))
 # Cache TTL (seconds) for fixtures/odds to protect the free-tier request quota.
 CACHE_TTL_SECONDS = int(_get("CACHE_TTL_SECONDS", "900"))
+
+# --- Security ---------------------------------------------------------------
+# When APP_API_KEY is set, the prediction endpoints require it in the
+# `X-API-Key` request header. Left empty => auth is DISABLED (keyless), which
+# keeps local/demo runs and the offline tests frictionless.
+APP_API_KEY = _get("APP_API_KEY")
+
+# Allowed browser origins for CORS (comma-separated). Empty => the CORS
+# middleware is not installed at all (server-to-server callers don't need it).
+_cors = _get("CORS_ORIGINS", "") or ""
+CORS_ORIGINS = [o.strip() for o in _cors.split(",") if o.strip()]
+
+# Lightweight per-client rate limit on the prediction endpoints: at most
+# RATE_LIMIT_MAX requests per RATE_LIMIT_WINDOW seconds, keyed by API key
+# (or client IP if unauthenticated). Set RATE_LIMIT_MAX=0 to disable.
+RATE_LIMIT_MAX = int(_get("RATE_LIMIT_MAX", "120"))
+RATE_LIMIT_WINDOW = int(_get("RATE_LIMIT_WINDOW", "60"))

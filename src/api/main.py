@@ -11,10 +11,16 @@ Endpoints:
 """
 
 import logging
+import secrets
+import threading
+import time
 from contextlib import asynccontextmanager
 from datetime import datetime
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, Security
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, Field
 
 from live import config
@@ -36,10 +42,74 @@ async def lifespan(app: FastAPI):
     except Exception as exc:  # missing artifact, etc.
         state["error"] = str(exc)
         logger.error("Predictor failed to initialize: %s", exc)
+    if not config.APP_API_KEY:
+        logger.warning(
+            "APP_API_KEY is not set — the prediction endpoints are UNAUTHENTICATED. "
+            "Fine for local/demo; set APP_API_KEY before exposing this service."
+        )
     yield
 
 
 app = FastAPI(title="Soccer Prediction — Live La Liga", version="1.0", lifespan=lifespan)
+
+# --- CORS (only if origins are configured) ---------------------------------
+if config.CORS_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=config.CORS_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["GET", "POST"],
+        allow_headers=["*"],
+    )
+
+
+# --- API-key authentication -------------------------------------------------
+_api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+def require_api_key(provided: str | None = Security(_api_key_header)) -> None:
+    """Require the X-API-Key header when APP_API_KEY is configured.
+
+    If APP_API_KEY is unset the check is skipped (keyless local/demo mode).
+    Comparison is constant-time to avoid leaking the key via timing.
+    """
+    expected = config.APP_API_KEY
+    if not expected:
+        return
+    if not provided or not secrets.compare_digest(provided, expected):
+        raise HTTPException(status_code=401, detail="Invalid or missing API key")
+
+
+# --- Simple in-memory rate limiter -----------------------------------------
+# Single-instance / fixed-window. For multiple replicas move this to Redis.
+_rate_hits: dict[str, list[float]] = {}
+_rate_lock = threading.Lock()
+_RATE_EXEMPT = {"/health", "/", "/docs", "/openapi.json", "/redoc"}
+
+
+@app.middleware("http")
+async def rate_limit(request: Request, call_next):
+    if config.RATE_LIMIT_MAX <= 0 or request.url.path in _RATE_EXEMPT:
+        return await call_next(request)
+    # Key by API key when present, else client IP (accurate behind a proxy that
+    # sets X-Forwarded-For, since uvicorn runs with proxy headers enabled).
+    key = request.headers.get("X-API-Key") or (request.client.host if request.client else "anon")
+    now = time.monotonic()
+    cutoff = now - config.RATE_LIMIT_WINDOW
+    with _rate_lock:
+        hits = [t for t in _rate_hits.get(key, ()) if t > cutoff]
+        if len(hits) >= config.RATE_LIMIT_MAX:
+            return JSONResponse(status_code=429, content={"detail": "Rate limit exceeded. Please slow down."})
+        hits.append(now)
+        _rate_hits[key] = hits
+    return await call_next(request)
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception(request: Request, exc: Exception):
+    """Never leak internals: log the detail server-side, return a generic 500."""
+    logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 
 # --- schemas ---------------------------------------------------------------
@@ -106,23 +176,25 @@ def health():
         "model_loaded": state["predictor"] is not None,
         "model": config.MODEL_PATH.name,  # fixed model served for live prediction
         "provider": config.PROVIDER,
-        "api_key_present": bool(config.API_FOOTBALL_KEY),
+        "api_key_present": bool(config.API_FOOTBALL_KEY),  # upstream (API-Football) key
+        "auth_enabled": bool(config.APP_API_KEY),          # this service's own auth
         "league_id": config.LEAGUE_ID,
         "error": state["error"],
     }
 
 
-@app.get("/fixtures/upcoming")
+@app.get("/fixtures/upcoming", dependencies=[Depends(require_api_key)])
 def upcoming(days: int = Query(7, ge=1, le=30)):
     try:
         return {"fixtures": _predictor().list_upcoming(days)}
     except HTTPException:
         raise
-    except Exception as exc:
-        raise HTTPException(502, detail=f"Provider error: {exc}")
+    except Exception:
+        logger.exception("Provider error on /fixtures/upcoming")
+        raise HTTPException(502, detail="Upstream data provider error. Please try again later.")
 
 
-@app.post("/predict", response_model=PredictionResponse)
+@app.post("/predict", response_model=PredictionResponse, dependencies=[Depends(require_api_key)])
 def predict(req: PredictRequest):
     """Predict a single match from user-supplied odds + best-effort form from the API."""
     p = _predictor()
@@ -131,15 +203,17 @@ def predict(req: PredictRequest):
             req.home_team, req.away_team, req.date,
             req.odds.home, req.odds.draw, req.odds.away,
         )
-    except Exception as exc:
-        raise HTTPException(502, detail=f"Prediction failed: {exc}")
+    except Exception:
+        logger.exception("Prediction failed on /predict")
+        raise HTTPException(502, detail="Prediction failed. Please try again later.")
 
 
-@app.get("/predict/upcoming")
+@app.get("/predict/upcoming", dependencies=[Depends(require_api_key)])
 def predict_upcoming(days: int = Query(7, ge=1, le=30)):
     try:
         return {"predictions": _predictor().predict_upcoming(days)}
     except HTTPException:
         raise
-    except Exception as exc:
-        raise HTTPException(502, detail=f"Provider error: {exc}")
+    except Exception:
+        logger.exception("Provider error on /predict/upcoming")
+        raise HTTPException(502, detail="Upstream data provider error. Please try again later.")

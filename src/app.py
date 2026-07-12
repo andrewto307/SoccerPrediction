@@ -26,6 +26,11 @@ st.set_page_config(page_title="Soccer Match Prediction", page_icon="⚽", layout
 
 API_URL = os.environ.get("API_URL", "http://127.0.0.1:8000").rstrip("/")
 
+# Sent on every API call. Must match the server's APP_API_KEY when auth is on;
+# harmless (ignored) when the server runs keyless.
+API_KEY = os.environ.get("APP_API_KEY", "").strip()
+_HEADERS = {"X-API-Key": API_KEY} if API_KEY else {}
+
 
 def main():
     st.title("⚽ Soccer Match Prediction")
@@ -36,7 +41,7 @@ def main():
 
     # --- API status: only surface a problem; stay quiet when healthy --------
     try:
-        health = httpx.get(f"{API_URL}/health", timeout=5).json()
+        health = httpx.get(f"{API_URL}/health", headers=_HEADERS, timeout=5).json()
         if not health.get("model_loaded"):
             st.warning(f"The prediction service isn't ready yet: {health.get('error')}")
     except Exception:
@@ -79,12 +84,18 @@ def main():
             resp = None
             with st.spinner("Calling the prediction API…"):
                 try:
-                    resp = httpx.post(f"{API_URL}/predict", json=payload, timeout=30)
-                except Exception as e:
-                    st.error(f"Could not reach the API at {API_URL}: {e}")
+                    resp = httpx.post(f"{API_URL}/predict", json=payload, headers=_HEADERS, timeout=30)
+                except Exception:
+                    st.error(f"Could not reach the prediction service at {API_URL}. Is it running?")
 
             if resp is not None and resp.status_code != 200:
-                st.error(f"API returned {resp.status_code}: {resp.text}")
+                # Surface a friendly message; never dump raw server text to the UI.
+                if resp.status_code in (401, 403):
+                    st.error("Authentication failed — check that APP_API_KEY matches the API service.")
+                elif resp.status_code == 429:
+                    st.warning("Too many requests — please wait a moment and try again.")
+                else:
+                    st.error(f"The prediction service returned an error (HTTP {resp.status_code}). Please try again.")
             elif resp is not None:
                 res = resp.json()
                 st.subheader("Prediction")

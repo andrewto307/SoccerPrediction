@@ -21,4 +21,8 @@ if __name__ == "__main__":
         host=os.environ.get("HOST", "127.0.0.1"),
         port=int(os.environ.get("PORT", "8000")),
         reload=False,
+        # Trust X-Forwarded-* from the reverse proxy (Caddy) so client IPs and
+        # scheme are correct (used by the rate limiter and logging).
+        proxy_headers=True,
+        forwarded_allow_ips="*",
     )

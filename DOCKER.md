@@ -1,13 +1,18 @@
 # 🐳 Docker Setup
 
-The system runs as **two containers** from one multi-target image:
+The system runs as **three containers** from one multi-target image:
 
 | Service | What it is | URL |
 |---|---|---|
 | `api` | FastAPI backend — loads the CatBoost model, serves `/predict` | http://localhost:8000 (`/docs`) |
 | `app` | Streamlit UI — a thin client that calls the API | http://localhost:8501 |
+| `caddy` | TLS reverse proxy — public HTTPS entrypoint for the UI | https://localhost (or your `DOMAIN`) |
 
-The UI reaches the API over the compose network (`API_URL=http://api:8000`).
+The UI reaches the API over the compose network (`API_URL=http://api:8000`). In
+this setup `api` and `app` are bound to `127.0.0.1` — only **`caddy`** is public.
+
+> **Security & HTTPS** (API-key auth, rate limiting, Caddy/Let's Encrypt certs)
+> are off by default — enable them via `.env` (`APP_API_KEY`, `DOMAIN`).
 
 ## Prerequisites
 

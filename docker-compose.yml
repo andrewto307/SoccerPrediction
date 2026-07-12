@@ -1,9 +1,10 @@
-# Two services from one multi-target image:
-#   api  - FastAPI prediction backend (loads the CatBoost model)      -> localhost:8000
-#   app  - Streamlit UI, a thin client that calls the API             -> localhost:8501
+# Three services from one multi-target image:
+#   api    - FastAPI prediction backend (loads the CatBoost model)  -> 127.0.0.1:8000
+#   app    - Streamlit UI, a thin client that calls the API         -> 127.0.0.1:8501
+#   caddy  - TLS reverse proxy; the only publicly exposed service   -> :80 / :443
 #
-# Supply your API-Football key in a .env file (see .env.example):
-#   API_FOOTBALL_KEY=...
+# Configure keys in a .env file (see .env.example):
+#   API_FOOTBALL_KEY=...   APP_API_KEY=...   DOMAIN=...
 # Start with:  docker compose up --build
 
 services:
@@ -13,9 +14,9 @@ services:
       target: api
     image: soccer-prediction-api
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"     # bound to localhost only; public access is via caddy
     env_file:
-      - .env                      # supplies API_FOOTBALL_KEY (+ optional overrides)
+      - .env                      # supplies API_FOOTBALL_KEY, APP_API_KEY, CORS_ORIGINS, ...
     environment:
       - LIVE_PROVIDER=api_football
       - HOST=0.0.0.0
@@ -34,9 +35,10 @@ services:
       target: app
     image: soccer-prediction-app
     ports:
-      - "8501:8501"
+      - "127.0.0.1:8501:8501"     # bound to localhost only; public access is via caddy
     environment:
-      - API_URL=http://api:8000   # reach the API over the compose network
+      - API_URL=http://api:8000       # reach the API over the compose network
+      - APP_API_KEY=${APP_API_KEY:-}  # so the UI can authenticate to the API (from .env)
     depends_on:
       api:
         condition: service_healthy
@@ -47,3 +49,25 @@ services:
       retries: 3
       start_period: 20s
     restart: unless-stopped
+
+  # TLS-terminating reverse proxy. Publishes the UI on 80/443 with automatic
+  # HTTPS. Set DOMAIN in .env to your subdomain (e.g. soccer.example.com); it
+  # defaults to localhost (self-signed) for local testing.
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data           # persists issued certificates across restarts
+      - caddy_config:/config
+    depends_on:
+      - app
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:
