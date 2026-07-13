@@ -18,8 +18,10 @@
 	}
 
 	# /docs would only reach the Streamlit UI (the API is not public), which is
-	# confusing — return 404 so the path is genuinely dead.
-	handle /docs /docs/* {
+	# confusing — return 404 so the path is genuinely dead. (Named matcher: an
+	# inline matcher allows only one path, so multiple paths need @name.)
+	@docs path /docs /docs/*
+	handle @docs {
 		respond 404
 	}
 
