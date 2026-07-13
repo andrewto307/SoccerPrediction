@@ -41,4 +41,6 @@ echo "==> Current status:"
 docker compose ps
 DOMAIN=$(grep -E '^DOMAIN=' .env | cut -d= -f2- || true)
 echo
-echo "Done. UI: https://${DOMAIN:-<your-domain>}    API docs: https://${DOMAIN:-<your-domain>}/docs (if exposed)"
+echo "Done. App: https://${DOMAIN:-<your-domain>}"
+echo "The API is internal-only (not publicly exposed). To view its docs, SSH-tunnel:"
+echo "  ssh -L 8000:127.0.0.1:8000 deploy@<server-ip>   then open http://localhost:8000/docs"
