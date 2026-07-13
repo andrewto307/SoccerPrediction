@@ -25,12 +25,12 @@ fi
 echo "==> Building images and starting containers"
 docker compose up -d --build
 
-# `up -d` won't restart caddy when only the bind-mounted Caddyfile content
-# changed (its service definition is unchanged), so reload Caddy explicitly.
-# Graceful reload (zero-downtime, validates config); fall back to a restart.
-echo "==> Reloading Caddy config"
-docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile 2>/dev/null \
-    || docker compose restart caddy
+# The Caddyfile is a single-file bind mount, which Docker binds by inode. When
+# `git pull` replaces the file (new inode), a running caddy keeps serving the OLD
+# file — and `restart`/`reload` don't help (same stale mount). Force-recreating
+# the container re-resolves the mount to the current Caddyfile.
+echo "==> Applying Caddy config (force-recreate so the bind mount re-resolves)"
+docker compose up -d --force-recreate caddy
 
 echo "==> Waiting for the API to report healthy"
 ok=""
