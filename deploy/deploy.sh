@@ -25,6 +25,13 @@ fi
 echo "==> Building images and starting containers"
 docker compose up -d --build
 
+# `up -d` won't restart caddy when only the bind-mounted Caddyfile content
+# changed (its service definition is unchanged), so reload Caddy explicitly.
+# Graceful reload (zero-downtime, validates config); fall back to a restart.
+echo "==> Reloading Caddy config"
+docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile 2>/dev/null \
+    || docker compose restart caddy
+
 echo "==> Waiting for the API to report healthy"
 ok=""
 for _ in $(seq 1 45); do
