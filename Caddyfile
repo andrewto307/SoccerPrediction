@@ -17,9 +17,17 @@
 		-Server
 	}
 
+	# /docs would only reach the Streamlit UI (the API is not public), which is
+	# confusing — return 404 so the path is genuinely dead.
+	handle /docs /docs/* {
+		respond 404
+	}
+
 	# The public UI. Caddy upgrades WebSocket connections automatically,
 	# which Streamlit needs.
-	reverse_proxy app:8501
+	handle {
+		reverse_proxy app:8501
+	}
 }
 
 # --- Optional: expose the API under its own subdomain -----------------------
