@@ -1,4 +1,4 @@
-# 🐳 Docker Setup
+# Docker Setup
 
 The system runs as **three containers** from one multi-target image:
 

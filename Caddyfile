@@ -3,7 +3,7 @@
 # {$DOMAIN} is supplied by docker-compose (from .env). On a public host with a
 # real domain, Caddy fetches a free Let's Encrypt certificate automatically.
 # When DOMAIN=localhost (the default), Caddy serves HTTPS with a local
-# self-signed cert — good enough for testing (your browser will warn once).
+# self-signed certificate for development.
 
 {$DOMAIN} {
 	encode gzip

@@ -80,8 +80,8 @@ is locked (free plan) or it's the off-season, the prediction proceeds without fo
 
 ## Streamlit app (calls the API)
 
-The dashboard's **🔴 Live Prediction** tab is a thin client: pick the teams + date,
-type the pre-match odds, and it POSTs to the API's `/predict`. Start **both**, in two
+The Streamlit app (`src/app.py`) is a thin client: pick the teams + date, type the
+pre-match odds, and it POSTs to the API's `/predict`. Start **both**, in two
 terminals, from the project root (`SoccerPrediction/`):
 
 ```bash
@@ -92,7 +92,7 @@ terminals, from the project root (`SoccerPrediction/`):
 ../myenv/bin/streamlit run src/app.py            # http://localhost:8501
 ```
 
-The tab shows the API connection status and reads `API_URL` (default
+The app surfaces the API connection status and reads `API_URL` (default
 `http://127.0.0.1:8000`) if the backend runs elsewhere.
 
 ## Offline / testing

@@ -22,7 +22,7 @@ from live.team_mapping import TRAINING_TEAMS
 
 logger = logging.getLogger(__name__)
 
-st.set_page_config(page_title="Soccer Match Prediction", page_icon="⚽", layout="wide")
+st.set_page_config(page_title="Soccer Match Prediction", layout="wide")
 
 API_URL = os.environ.get("API_URL", "http://127.0.0.1:8000").rstrip("/")
 
@@ -33,7 +33,7 @@ _HEADERS = {"X-API-Key": API_KEY} if API_KEY else {}
 
 
 def main():
-    st.title("⚽ Soccer Match Prediction")
+    st.title("Soccer Match Prediction")
     st.caption(
         "Predict a La Liga match outcome from the pre-match odds. Served by a trained "
         "CatBoost model via the prediction API; recent team form is pulled live when available."
@@ -71,7 +71,7 @@ def main():
         away_odds = st.number_input("Away win", min_value=1.01, value=3.50, step=0.05)
 
     # --- Predict ------------------------------------------------------------
-    if st.button("🔮 Predict", type="primary"):
+    if st.button("Predict", type="primary"):
         if home == away:
             st.warning("Home and away teams must be different.")
         else:

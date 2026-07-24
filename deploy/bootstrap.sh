@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
-# One-time provisioning for a fresh Ubuntu 22.04/24.04 Hetzner server.
+# One-time provisioning for a fresh Ubuntu 22.04/24.04 cloud server.
 # Installs Docker + Compose, sets up a firewall, adds swap (so image builds
 # don't OOM), and creates a non-root `deploy` user with Docker access.
 #
