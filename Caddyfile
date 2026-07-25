@@ -1,0 +1,43 @@
+# Caddy reverse proxy — automatic HTTPS in front of the Streamlit UI.
+#
+# {$DOMAIN} is supplied by docker-compose (from .env). On a public host with a
+# real domain, Caddy fetches a free Let's Encrypt certificate automatically.
+# When DOMAIN=localhost (the default), Caddy serves HTTPS with a local
+# self-signed certificate for development.
+
+{$DOMAIN} {
+	encode gzip
+
+	# Sensible security headers.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# /docs would only reach the Streamlit UI (the API is not public), which is
+	# confusing — return 404 so the path is genuinely dead. (Named matcher: an
+	# inline matcher allows only one path, so multiple paths need @name.)
+	@docs path /docs /docs/*
+	handle @docs {
+		respond 404
+	}
+
+	# The public UI. Caddy upgrades WebSocket connections automatically,
+	# which Streamlit needs.
+	handle {
+		reverse_proxy app:8501
+	}
+}
+
+# --- Optional: expose the API under its own subdomain -----------------------
+# The API is protected by APP_API_KEY, but by default it is NOT published to the
+# internet (only reachable inside the compose network). Uncomment to expose it,
+# and add an A record for api.<your-domain> pointing at this host.
+#
+# api.{$DOMAIN} {
+# 	header -Server
+# 	reverse_proxy api:8000
+# }
