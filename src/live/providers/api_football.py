@@ -26,10 +26,17 @@ logger = logging.getLogger(__name__)
 _MATCH_WINNER_BET_ID = 1
 
 
+def season_for_date(date: datetime) -> int:
+    """La Liga season start-year for a match date (season runs Aug->May).
+
+    A date in Feb 2023 belongs to the 2022/23 season -> 2022.
+    """
+    return date.year if date.month >= 7 else date.year - 1
+
+
 def default_season(today: datetime | None = None) -> int:
-    """La Liga season start-year for a date (season runs Aug->May)."""
-    today = today or datetime.now(timezone.utc)
-    return today.year if today.month >= 7 else today.year - 1
+    """La Liga season start-year for 'now' (or a given day)."""
+    return season_for_date(today or datetime.now(timezone.utc))
 
 
 class _TTLCache:
@@ -125,11 +132,12 @@ class ApiFootballProvider(FixtureProvider):
         fixtures.sort(key=lambda f: f.date)
         return fixtures
 
-    def recent_results(self) -> list[FinishedMatch]:
+    def recent_results(self, season: int | None = None) -> list[FinishedMatch]:
         matches: list[FinishedMatch] = []
-        # Current season plus the previous one, so every team has >=5 prior games
+        target = season if season is not None else self.season
+        # Target season plus the previous one, so every team has >=5 prior games
         # even early in the campaign.
-        for season in (self.season, self.season - 1):
+        for season in (target, target - 1):
             params = {
                 "league": self.league_id,
                 "season": season,
@@ -153,6 +161,28 @@ class ApiFootballProvider(FixtureProvider):
                 )
         matches.sort(key=lambda m: m.date)
         return matches
+
+    def fixtures_on_date(self, date: datetime, season: int | None = None) -> list[Fixture]:
+        target = season if season is not None else season_for_date(date)
+        params = {
+            "league": self.league_id,
+            "season": target,
+            "date": date.date().isoformat(),
+            "timezone": "UTC",
+        }
+        out: list[Fixture] = []
+        for item in self._get("/fixtures", params):
+            fx = item["fixture"]
+            out.append(
+                Fixture(
+                    fixture_id=fx["id"],
+                    date=datetime.fromisoformat(fx["date"].replace("Z", "+00:00")),
+                    home_team=item["teams"]["home"]["name"],
+                    away_team=item["teams"]["away"]["name"],
+                    status=(fx.get("status") or {}).get("short", "NS"),
+                )
+            )
+        return out
 
     def match_odds(self, fixture_id: int) -> OddsByBookmaker:
         params = {

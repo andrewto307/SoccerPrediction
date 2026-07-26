@@ -48,6 +48,9 @@ class FeatureResult:
     unmapped_teams: list[str] = field(default_factory=list)
     home_matches_used: int = 0
     away_matches_used: int = 0
+    home_form_dates: list[str] = field(default_factory=list)  # dates of the matches used (recent first)
+    away_form_dates: list[str] = field(default_factory=list)
+    form_stale: bool = False                     # most recent form match is long before the fixture
 
 
 def _to_naive(dt: datetime) -> pd.Timestamp:
@@ -167,6 +170,29 @@ def _odds_columns(odds: OddsByBookmaker) -> tuple[dict[str, float], list[str]]:
     return cols, missing
 
 
+_STALE_FORM_DAYS = 45  # a fixture this far after the last form match -> form is "stale"
+
+
+def _recent_match_dates(history: pd.DataFrame, team: str, date: pd.Timestamp, window: int) -> list[str]:
+    """Dates (most-recent first, up to `window`) of a team's matches before `date`."""
+    if history.empty:
+        return []
+    mask = ((history["HomeTeam"] == team) | (history["AwayTeam"] == team)) & (history["Date"] < date)
+    dts = history.loc[mask, "Date"].sort_values(ascending=False).head(window)
+    return [d.date().isoformat() for d in dts]
+
+
+def _form_is_stale(matchday: pd.Timestamp, dates: list[str]) -> bool:
+    """True if the most recent form match is > _STALE_FORM_DAYS before the fixture.
+
+    Empty `dates` means form is *absent* (reported via matches_used), not stale.
+    """
+    if not dates:
+        return False
+    most_recent = max(pd.Timestamp(d) for d in dates)
+    return (matchday - most_recent).days > _STALE_FORM_DAYS
+
+
 def build_features(
     home_team: str,
     away_team: str,
@@ -187,6 +213,9 @@ def build_features(
 
     ts = _to_naive(date)
     form, h_used, a_used = _scaled_form(mapped_home, mapped_away, ts, history, scaler, window)
+    home_dates = _recent_match_dates(history, mapped_home, ts, window)
+    away_dates = _recent_match_dates(history, mapped_away, ts, window)
+    stale = _form_is_stale(ts, home_dates + away_dates)
     odds_cols, missing = _odds_columns(odds)
 
     record = {"HomeTeam": mapped_home, "AwayTeam": mapped_away, **form, **odds_cols}
@@ -205,4 +234,7 @@ def build_features(
         unmapped_teams=unmapped,
         home_matches_used=h_used,
         away_matches_used=a_used,
+        home_form_dates=home_dates,
+        away_form_dates=away_dates,
+        form_stale=stale,
     )

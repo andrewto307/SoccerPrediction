@@ -53,7 +53,9 @@ class MockProvider(FixtureProvider):
             key=lambda f: f.date,
         )
 
-    def recent_results(self) -> list[FinishedMatch]:
+    def recent_results(self, season: int | None = None) -> list[FinishedMatch]:
+        # The mock serves a fixed sample set; `season` is accepted for interface
+        # parity with the live provider but ignored.
         rows = self._load("results.json", [])
         return sorted(
             (
@@ -68,6 +70,16 @@ class MockProvider(FixtureProvider):
             ),
             key=lambda m: m.date,
         )
+
+    def fixtures_on_date(self, date: datetime, season: int | None = None) -> list[Fixture]:
+        day = (_parse_dt(date) if isinstance(date, str) else date).date()
+        out = [f for f in self.upcoming_fixtures() if f.date.date() == day]
+        out += [
+            Fixture(fixture_id=-1, date=m.date, home_team=m.home_team,
+                    away_team=m.away_team, status="FT")
+            for m in self.recent_results() if m.date.date() == day
+        ]
+        return out
 
     def match_odds(self, fixture_id: int) -> OddsByBookmaker:
         odds = self._load("odds.json", {})

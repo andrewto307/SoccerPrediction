@@ -43,8 +43,14 @@ class FixtureProvider(ABC):
         """Fixtures kicking off within the next `days` days."""
 
     @abstractmethod
-    def recent_results(self) -> list[FinishedMatch]:
-        """Finished matches (current season, plus prior season for early-season form)."""
+    def recent_results(self, season: int | None = None) -> list[FinishedMatch]:
+        """Finished matches for `season` (default: the provider's season), plus the
+        prior season for early-season form."""
+
+    @abstractmethod
+    def fixtures_on_date(self, date: datetime, season: int | None = None) -> list[Fixture]:
+        """All fixtures (any status) on the given calendar date, for verifying that a
+        real match between two teams exists. Raw provider team names."""
 
     @abstractmethod
     def match_odds(self, fixture_id: int) -> OddsByBookmaker:

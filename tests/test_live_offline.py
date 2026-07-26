@@ -87,8 +87,30 @@ def test_predict_manual_offline():
     assert r["unmapped_teams"] == []
 
 
+def test_find_fixture_offline():
+    """Verification: real matchup found; swapped orientation and wrong date rejected."""
+    predictor = Predictor(provider=MockProvider())
+    # Mock has Barcelona (home) vs Real Madrid (away) on 2026-08-22.
+    assert predictor.find_fixture("Barcelona", "Real Madrid", "2026-08-22T00:00:00+00:00") is not None
+    # Home/away swapped must NOT match.
+    assert predictor.find_fixture("Real Madrid", "Barcelona", "2026-08-22T00:00:00+00:00") is None
+    # Different date (that day is Sevilla vs Valencia).
+    assert predictor.find_fixture("Barcelona", "Real Madrid", "2026-08-23T00:00:00+00:00") is None
+
+
+def test_resolve_odds_offline():
+    """Odds resolution: provider when available, manual fallback, else none."""
+    predictor = Predictor(provider=MockProvider())
+    odds, src = predictor.resolve_odds(900001)                      # mock fixture has odds
+    assert src == "provider" and odds
+    odds, src = predictor.resolve_odds(999999, manual=(2.10, 3.40, 3.20))  # no provider odds
+    assert src == "manual" and odds
+    odds, src = predictor.resolve_odds(999999, manual=None)         # neither
+    assert src == "none" and odds is None
+
+
 class _NoResultsProvider(MockProvider):
-    def recent_results(self):
+    def recent_results(self, season=None):
         raise RuntimeError("season locked (free plan)")
 
 

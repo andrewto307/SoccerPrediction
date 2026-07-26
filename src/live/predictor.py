@@ -17,8 +17,8 @@ from sklearn.preprocessing import MinMaxScaler
 from model_configs import OUTCOME_MAP
 from live import config
 from live.feature_builder import build_features, build_history_frame, FeatureResult
-from live.providers.api_football import ApiFootballProvider
-from live.providers.base import Fixture, FixtureProvider
+from live.providers.api_football import ApiFootballProvider, season_for_date
+from live.providers.base import Fixture, FixtureProvider, OddsByBookmaker
 from live.providers.mock import MockProvider
 
 logger = logging.getLogger(__name__)
@@ -98,6 +98,9 @@ class Predictor:
             "unmapped_teams": fr.unmapped_teams,
             "home_matches_used": fr.home_matches_used,
             "away_matches_used": fr.away_matches_used,
+            "home_form_dates": fr.home_form_dates,
+            "away_form_dates": fr.away_form_dates,
+            "form_stale": fr.form_stale,
         }
 
     def predict_fixture(self, fixture: Fixture, history: pd.DataFrame) -> dict:
@@ -107,16 +110,16 @@ class Predictor:
         )
         return self._predict_from_features(fr, fixture)
 
-    def _safe_history(self) -> pd.DataFrame:
+    def _safe_history(self, season: int | None = None) -> pd.DataFrame:
         """Build match history from the provider, best-effort.
 
-        Form is a 'take what the API can give' feature: if the provider can't
-        return recent results (e.g. the configured season is locked on a free
-        plan, or it's the off-season), we proceed with empty history and the
-        model falls back to no-recent-form defaults rather than failing.
+        `season` selects which season's results to pull (default: the provider's
+        own season). Form is a 'take what the API can give' feature: if the
+        provider can't return recent results, we proceed with empty history and
+        the model falls back to no-recent-form defaults rather than failing.
         """
         try:
-            return build_history_frame(self.provider.recent_results())
+            return build_history_frame(self.provider.recent_results(season))
         except Exception as exc:
             logger.warning("Recent results unavailable; predicting without form history: %s", exc)
             return build_history_frame([])
@@ -142,6 +145,51 @@ class Predictor:
             return None
         return self.predict_fixture(fixture, self._safe_history())
 
+    def find_fixture(self, home_team: str, away_team: str, date) -> Fixture | None:
+        """Return the real fixture matching (home, away) on `date` in that exact
+        orientation, or None. Names are compared in the model's vocabulary, so a
+        home/away swap does not match (reported as 'not accurate' upstream).
+        """
+        from live.team_mapping import map_team
+
+        ts = pd.Timestamp(date)
+        season = season_for_date(ts)
+        want_home, _ = map_team(home_team)
+        want_away, _ = map_team(away_team)
+        for fx in self.provider.fixtures_on_date(ts.to_pydatetime(), season):
+            if map_team(fx.home_team)[0] == want_home and map_team(fx.away_team)[0] == want_away:
+                return fx
+        return None
+
+    def _provider_odds(self, fixture_id: int) -> OddsByBookmaker:
+        """A fixture's odds from the provider, best-effort ({} if unavailable).
+
+        Live odds only exist for imminent fixtures; historical and far-future
+        fixtures return nothing, which the caller handles as a manual fallback.
+        """
+        if not fixture_id or fixture_id < 0:
+            return {}
+        try:
+            return self.provider.match_odds(fixture_id)
+        except Exception as exc:
+            logger.warning("Odds unavailable for fixture %s: %s", fixture_id, exc)
+            return {}
+
+    def resolve_odds(
+        self, fixture_id: int, manual: tuple[float, float, float] | None = None
+    ) -> tuple[OddsByBookmaker | None, str]:
+        """Prefer real provider odds; fall back to a manual (home, draw, away) triplet.
+
+        Returns (odds_by_bookmaker | None, source) with source one of 'provider'
+        (live odds), 'manual' (user-supplied), or 'none' (neither available).
+        """
+        provider_odds = self._provider_odds(fixture_id)
+        if provider_odds:
+            return provider_odds, "provider"
+        if manual is not None:
+            return odds_from_triplet(*manual), "manual"
+        return None, "none"
+
     def predict_manual(
         self,
         home_team: str,
@@ -157,7 +205,8 @@ class Predictor:
         caller provides the H/D/A decimal odds; form/team data is pulled from the
         provider when available (else defaulted).
         """
-        history = self._safe_history()
+        season = season_for_date(pd.Timestamp(date))
+        history = self._safe_history(season)
         odds = odds_from_triplet(home_odds, draw_odds, away_odds)
         fr = build_features(home_team, away_team, date, odds, history, self.scaler, self.window)
         fixture = Fixture(-1, pd.Timestamp(date).to_pydatetime(), home_team, away_team)
